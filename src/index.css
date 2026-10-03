@@ -1,0 +1,77 @@
+@import 'tailwindcss';
+
+/* Tokens del sistema de diseño Inka Athletics (docs/design-system.md) */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Oswald', ui-sans-serif, system-ui, sans-serif;
+
+  --breakpoint-xs: 576px;
+  --breakpoint-sm: 768px;
+  --breakpoint-md: 992px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1408px;
+  --breakpoint-2xl: initial;
+
+  --color-action-primary: #f76707;
+  --color-action-primary-hover: #c2410c;
+  --color-action-primary-soft: #fce3d0;
+
+  --color-accent-volt: #c3e504;
+  --color-accent-volt-soft: #eef7b0;
+  --color-accent-signal: #4361ee;
+  --color-accent-signal-soft: #e1e6fb;
+
+  --color-surface-ink: #1b1812;
+  --color-surface-ink-soft: #26221a;
+  --color-surface-cloud: #f7f5f0;
+  --color-surface-cloud-subtle: #edeae2;
+
+  --color-text-primary: #1b1812;
+  --color-text-inverse: #f7f5f0;
+  --color-text-secondary: #495057;
+  --color-text-disabled: #868e96;
+
+  --color-border-default: #dee2e6;
+  --color-border-inverse: #3a362c;
+
+  --color-success: #2f9e44;
+  --color-success-bg: #ebfbee;
+  --color-warning: #f08c00;
+  --color-warning-bg: #fff9db;
+  --color-error: #e03131;
+  --color-error-bg: #fff5f5;
+  --color-info: #1971c2;
+  --color-info-bg: #e7f5ff;
+}
+
+@layer base {
+  body {
+    @apply bg-surface-cloud font-sans text-base text-text-primary antialiased;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent-signal;
+  }
+}
+
+/* Ticket térmico de 80 mm (RF-15 / RF-22): solo se imprime el área marcada */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 72mm;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+}
