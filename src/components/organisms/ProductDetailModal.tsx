@@ -143,6 +143,7 @@ export function ProductDetailModal({ producto, skuInicial, onClose }: ProductDet
             fullWidth
             icon={<IconShoppingCartPlus size={20} aria-hidden />}
             disabled={!variante || variante.stockTienda === 0 || topeAlcanzado}
+            autoFocus={!!inicial}
             title={topeAlcanzado ? 'Stock máximo disponible en tienda alcanzado' : undefined}
             onClick={agregarAlCarrito}
           >

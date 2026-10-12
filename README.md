@@ -26,6 +26,9 @@ Usuarios de demostración (contraseña `Retail2026!`):
 Los datos simulados (stock, clientes, pickups, caja) se guardan en `localStorage`; para reiniciarlos borra la clave
 `g4-retail-mock-db`.
 
+**Simulador de lector de barras:** en la pantalla de venta, bajo el catálogo, hay una barra donde se escribe un
+código de barras o SKU (o se elige un código de prueba) y se envía como si lo hubiera leído el lector físico.
+
 Para conectar el backend real copia `.env.example` a `.env` y define `VITE_USE_MOCKS=false` y `VITE_API_URL`.
 
 ## Alcance
@@ -54,7 +57,8 @@ src/
 │   │                 SegmentedControl, SummaryRow, EmptyState, Toaster
 │   ├── organisms/    LoginForm, AppHeader, CatalogFilters, ProductCard, ProductDetailModal, CartPanel,
 │   │                 CartLine, TotalsPanel, CustomerSection, QuickCustomerModal, HeldCarts, PaymentModal,
-│   │                 Receipt, PickupCard, DeliveryModal, ShiftOpenModal, DenominationCounter, ZReport
+│   │                 Receipt, PickupCard, DeliveryModal, ShiftOpenModal, DenominationCounter, ZReport,
+│   │                 ScannerSimulator
 │   └── templates/    AuthLayout, PosLayout
 ├── pages/            LoginPage, PosPage, ReceiptPage, PickupPage, CashClosePage
 ├── router/           AppRouter, RequireAuth (guardián de rutas por rol)

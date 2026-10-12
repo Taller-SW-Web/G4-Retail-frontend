@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconCash, IconClockPause, IconPlayerPause, IconShoppingCart, IconTrash } from '@tabler/icons-react'
+import { IconCash, IconShoppingCart } from '@tabler/icons-react'
 import { Button } from '../atoms/Button'
 import { ConfirmDialog } from '../molecules/ConfirmDialog'
 import { EmptyState } from '../molecules/EmptyState'
@@ -56,10 +56,10 @@ export function CartPanel() {
   }
 
   return (
-    <aside aria-labelledby="titulo-carrito" className="flex flex-col gap-4 rounded-xl border border-border-default bg-white p-4">
+    <aside aria-labelledby="titulo-carrito" className="flex flex-col gap-2 rounded-xl border border-border-default bg-white p-4 md:h-full md:min-h-0">
       <header className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 id="titulo-carrito" className="font-heading text-2xl font-bold uppercase">
+          <h2 id="titulo-carrito" className="font-heading text-xl font-bold uppercase">
             Carrito de Venta Mostrador
           </h2>
           <span className="text-sm font-semibold whitespace-nowrap text-text-secondary">
@@ -67,33 +67,33 @@ export function CartPanel() {
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" icon={<IconClockPause size={20} aria-hidden />} onClick={() => setDialogo('espera')}>
+          <Button variant="secondary" onClick={() => setDialogo('espera')}>
             Ventas en Espera ({enEspera.length})
           </Button>
-          <Button variant="secondary" icon={<IconPlayerPause size={20} aria-hidden />} disabled={items.length === 0} onClick={() => setDialogo('pausar')}>
+          <Button variant="secondary" disabled={items.length === 0} onClick={() => setDialogo('pausar')}>
             Pausar Venta
+          </Button>
+          <Button variant="danger" className="ml-auto" disabled={items.length === 0} onClick={() => setDialogo('limpiar')}>
+            Limpiar Carrito
           </Button>
         </div>
       </header>
 
       <CustomerSection />
 
-      {items.length === 0 ? (
-        <EmptyState icon={<IconShoppingCart size={24} />} title="Carrito vacío">
-          Busca o escanea un producto para empezar la venta.
-        </EmptyState>
-      ) : (
-        <>
+      <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+        {items.length === 0 ? (
+          <EmptyState icon={<IconShoppingCart size={24} />} title="Carrito vacío">
+            Busca o escanea un producto para empezar la venta.
+          </EmptyState>
+        ) : (
           <ul className="divide-y divide-border-default border-y border-border-default">
             {items.map((item) => (
               <CartLine key={item.sku} item={item} />
             ))}
           </ul>
-          <Button variant="danger" icon={<IconTrash size={20} aria-hidden />} onClick={() => setDialogo('limpiar')}>
-            Limpiar Carrito
-          </Button>
-        </>
-      )}
+        )}
+      </div>
 
       <TotalsPanel totales={totales} />
 

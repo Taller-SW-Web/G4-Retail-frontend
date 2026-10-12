@@ -30,9 +30,9 @@ export function PosLayout() {
   const exigeApertura = caja?.estado === 'CERRADA' && pathname !== '/caja/cierre'
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col md:h-dvh print:h-auto">
       <AppHeader />
-      <main className="mx-auto w-full max-w-[1320px] flex-1 p-4 sm:p-6 md:p-8">
+      <main className="mx-auto w-full max-w-[1320px] flex-1 p-4 sm:p-6 md:min-h-0 md:overflow-y-auto print:overflow-visible">
         {caja ? (
           <Outlet />
         ) : sinServicio ? (
