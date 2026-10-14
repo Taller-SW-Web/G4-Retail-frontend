@@ -1,0 +1,61 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-heading: 'Oswald', sans-serif;
+
+  --color-action-primary: #f76707;
+  --color-action-primary-hover: #c2410c;
+  --color-action-primary-soft: #fce3d0;
+  --color-accent-volt: #c3e504;
+  --color-accent-volt-soft: #eef7b0;
+  --color-accent-signal: #4361ee;
+  --color-accent-signal-soft: #e1e6fb;
+  --color-surface-ink: #1b1812;
+  --color-surface-ink-soft: #26221a;
+  --color-surface-cloud: #f7f5f0;
+  --color-surface-cloud-subtle: #edeae2;
+  --color-text-primary: #1b1812;
+  --color-text-inverse: #f7f5f0;
+  --color-text-secondary: #495057;
+  --color-text-disabled: #868e96;
+  --color-border-default: #dee2e6;
+  --color-border-inverse: #3a362c;
+}
+
+:root {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--color-text-primary);
+  background: var(--color-surface-cloud);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-surface-cloud);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.font-heading {
+  font-family: 'Oswald', sans-serif;
+}
