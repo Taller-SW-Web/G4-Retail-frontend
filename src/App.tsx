@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import LoginPage from './pages/LoginPage'
 import PosPage from './pages/PosPage'
 import { products } from './data/products'
+import { addProductToCart, getCartSubtotal, removeCartItem, setCartItemQuantity } from './lib/cart'
 import type { CartItem, Product } from './types'
 
 export default function App() {
@@ -22,43 +23,31 @@ export default function App() {
     })
   }, [search])
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product) => setCart((current) => addProductToCart(current, product))
+
+  const increaseQuantity = (productId: string) => {
     setCart((current) => {
-      const existing = current.find((item) => item.product.id === product.id)
-
-      if (existing) {
-        return current.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
-        )
-      }
-
-      return [...current, { product, quantity: 1 }]
+      const item = current.find((currentItem) => currentItem.product.id === productId)
+      return item
+        ? setCartItemQuantity(current, productId, item.quantity + 1)
+        : current
     })
   }
 
-  const increaseQuantity = (productId: string) => {
-    setCart((current) =>
-      current.map((item) =>
-        item.product.id === productId ? { ...item, quantity: item.quantity + 1 } : item,
-      ),
-    )
-  }
-
   const decreaseQuantity = (productId: string) => {
-    setCart((current) =>
-      current
-        .map((item) =>
-          item.product.id === productId ? { ...item, quantity: item.quantity - 1 } : item,
-        )
-        .filter((item) => item.quantity > 0),
-    )
+    setCart((current) => {
+      const item = current.find((currentItem) => currentItem.product.id === productId)
+      return item
+        ? setCartItemQuantity(current, productId, item.quantity - 1)
+        : current
+    })
   }
 
   const removeFromCart = (productId: string) => {
-    setCart((current) => current.filter((item) => item.product.id !== productId))
+    setCart((current) => removeCartItem(current, productId))
   }
 
-  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+  const subtotal = getCartSubtotal(cart)
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={() => setIsAuthenticated(true)} />
