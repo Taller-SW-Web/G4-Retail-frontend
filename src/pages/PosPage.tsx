@@ -4,8 +4,10 @@ import Button from '../components/atoms/Button'
 import CategoryFilter from '../components/molecules/CategoryFilter'
 import EmptyState from '../components/molecules/EmptyState'
 import SearchBar from '../components/molecules/SearchBar'
+import StatCard from '../components/molecules/StatCard'
 import CartPanel from '../components/organisms/CartPanel'
 import ProductCard from '../components/organisms/ProductCard'
+import { getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
 import type { CartItem, Product } from '../types'
 
@@ -87,41 +89,9 @@ export default function PosPage({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[var(--color-border-default)] bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-[var(--color-accent-signal-soft)] p-2 text-[var(--color-accent-signal)]">
-                    <IconPackage size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">Productos</p>
-                    <p className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">{products.length}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-[var(--color-border-default)] bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-[#EBFBEE] p-2 text-[#2F9E44]">
-                    <IconClipboardList size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">Tickets</p>
-                    <p className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">26</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-[var(--color-border-default)] bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-[#E7F5FF] p-2 text-[#1971C2]">
-                    <IconReceipt2 size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">Total</p>
-                    <p className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">{formatCurrency(subtotal)}</p>
-                  </div>
-                </div>
-              </div>
+              <StatCard icon={<IconPackage size={18} />} label="Resultados" value={products.length} tone="signal" />
+              <StatCard icon={<IconClipboardList size={18} />} label="Unidades en carrito" value={getCartItemCount(cart)} tone="volt" />
+              <StatCard icon={<IconReceipt2 size={18} />} label="Total" value={formatCurrency(subtotal)} tone="action" />
             </div>
 
             <div className="rounded-2xl border border-[var(--color-border-default)] bg-white p-4 shadow-sm">
