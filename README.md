@@ -1,73 +1,48 @@
-# G4 Retail — Frontend (POS de mostrador)
+# G4 Retail — Frontend
 
-Terminal de venta asistida del **Módulo Retail** del Marketplace Deportivo (Inka Athletics).
-React + Vite + TypeScript + Tailwind CSS, construido a partir de las specs de
-[G4-Retail-specs](https://github.com/Taller-SW-Web/G4-Retail-specs) y del sistema de diseño en
-[`docs/design-system.md`](./docs/design-system.md).
+Prototipo de punto de venta para el módulo Retail del Marketplace Deportivo. Está construido con React, Vite, TypeScript y Tailwind CSS; por ahora usa un catálogo local y no requiere backend.
 
-## Cómo correrlo
+## Cómo iniciar
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm test         # pruebas unitarias (totales, vuelto, validaciones)
+npm run dev
+npm test
 npm run build
 ```
 
-Por defecto la app usa una **API simulada en el navegador** (`src/api/mock`), así que no necesita backend.
-Usuarios de demostración (contraseña `Retail2026!`):
+El acceso es una simulación: el formulario de inicio de sesión no valida credenciales ni representa autenticación real. El carrito se guarda en `localStorage` bajo la clave `inka-retail-cart`; para vaciar los datos guardados, elimina esa clave desde las herramientas del navegador.
 
-| Correo | Rol |
-|---|---|
-| `vendedor1@inkaathletics.pe` | Vendedor |
-| `cajero1@inkaathletics.pe` | Cajero (puede cerrar caja) |
-| `supervisor1@inkaathletics.pe` | Supervisor (puede cerrar caja) |
+## Qué incluye el prototipo
 
-Los datos simulados (stock, clientes, pickups, caja) se guardan en `localStorage`; para reiniciarlos borra la clave
-`g4-retail-mock-db`.
+- Catálogo con búsqueda por nombre, categoría o SKU; las búsquedas no distinguen mayúsculas ni tildes.
+- Filtro por categoría y estados de catálogo vacío.
+- Carrito con cantidades limitadas al stock disponible, subtotales y persistencia local.
+- Formato de precios en soles peruanos y etiquetas de stock.
+- Componentes de interfaz reutilizables y pruebas unitarias para las reglas puras del dominio.
 
-**Simulador de lector de barras:** en la pantalla de venta, bajo el catálogo, hay una barra donde se escribe un
-código de barras o SKU (o se elige un código de prueba) y se envía como si lo hubiera leído el lector físico.
+El pago, las ventas, los clientes, los turnos y la integración con servicios externos todavía no están implementados.
 
-Para conectar el backend real copia `.env.example` a `.env` y define `VITE_USE_MOCKS=false` y `VITE_API_URL`.
+## Estructura actual
 
-## Alcance
-
-Funcionalidades **Must Have** de [FUNCIONALIDADES-RF.md](https://github.com/Taller-SW-Web/G4-Retail-specs/blob/main/FUNCIONALIDADES-RF.md):
-
-| Funcionalidad | RF implementados |
-|---|---|
-| F1 Inicio de sesión | RF-01, RF-02, RF-03 |
-| F2 Catálogo y disponibilidad | RF-04, RF-05, RF-06 |
-| F3 Clientes | RF-07, RF-08, RF-09 |
-| F4 Venta asistida | RF-10, RF-12 |
-| F5 Pago y comprobante | RF-13, RF-14, RF-15 |
-| F7 Pickup | RF-18, RF-19 |
-| F8 Turno y caja | RF-20, RF-22 |
-
-Pendientes (Should/Could): RF-11 cupones y promociones, RF-21 movimientos menores de caja, y F6, F9, F10, F11, F12.
-
-## Estructura (Atomic Design)
-
-```
+```text
 src/
 ├── components/
-│   ├── atoms/        Button, ActionIcon, Input, Select, Checkbox, Badge, Chip, Spinner, Logo, ProductImage
-│   ├── molecules/    FormField, SearchBar, QuantityStepper, StockBadge, Alert, Modal, ConfirmDialog,
-│   │                 SegmentedControl, SummaryRow, EmptyState, Toaster
-│   ├── organisms/    LoginForm, AppHeader, CatalogFilters, ProductCard, ProductDetailModal, CartPanel,
-│   │                 CartLine, TotalsPanel, CustomerSection, QuickCustomerModal, HeldCarts, PaymentModal,
-│   │                 Receipt, PickupCard, DeliveryModal, ShiftOpenModal, DenominationCounter, ZReport,
-│   │                 ScannerSimulator
-│   └── templates/    AuthLayout, PosLayout
-├── pages/            LoginPage, PosPage, ReceiptPage, PickupPage, CashClosePage
-├── router/           AppRouter, RequireAuth (guardián de rutas por rol)
-├── services/         Llamadas a los endpoints de specs/api-contracts.md
-├── api/              Cliente HTTP (Bearer + manejo de 401) y API simulada
-├── store/            Estado global con Zustand (sesión, carrito, caja, pickup, toasts)
-├── lib/              Formato, totales/IGV, validaciones, permisos
-└── types/            Modelos de los contratos
+│   ├── atoms/       # Button, Badge
+│   ├── molecules/   # SearchBar, CategoryFilter, StockBadge, EmptyState, StatCard
+│   └── organisms/   # ProductCard, CartPanel
+├── data/            # Catálogo local de productos
+├── lib/             # Formato, búsqueda, inventario, carrito y persistencia
+├── pages/           # LoginPage, PosPage
+├── App.tsx          # Estado y composición del flujo actual
+├── index.css        # Tokens y estilos globales
+└── types.ts         # Tipos compartidos del dominio
 ```
 
-Los tokens del sistema de diseño (colores, tipografías, breakpoints) están declarados en `src/index.css`;
-los componentes usan solo esos tokens.
+## Cómo añadir funcionalidades
+
+1. Define los tipos y las reglas de negocio en `src/types.ts` y `src/lib/`. Mantén esas reglas como funciones puras cuando sea posible para poder probarlas sin renderizar React.
+2. Añade piezas pequeñas y reutilizables en `components/atoms/`; combina átomos en `components/molecules/` y reserva `components/organisms/` para secciones completas con comportamiento propio.
+3. Compón los organismos desde `pages/`. Mantén el estado compartido en `App.tsx` mientras el flujo sea pequeño; extrae un store o servicio cuando una funcionalidad lo justifique.
+4. Añade pruebas junto a las reglas de dominio (`*.test.ts`) y ejecuta `npm test` y `npm run build` antes de integrar cambios.
+5. Usa los tokens de `src/index.css` para mantener el sistema visual documentado en [`docs/design-system.md`](./docs/design-system.md), y conserva etiquetas accesibles y estados vacíos para las interacciones nuevas.
