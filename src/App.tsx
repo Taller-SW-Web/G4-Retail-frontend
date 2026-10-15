@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage'
 import PosPage from './pages/PosPage'
 import { products } from './data/products'
 import { addProductToCart, getCartSubtotal, removeCartItem, setCartItemQuantity } from './lib/cart'
+import { searchProducts } from './lib/catalog'
 import type { CartItem, Product } from './types'
 
 export default function App() {
@@ -11,16 +12,7 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>([])
 
   const filteredProducts = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    if (!term) return products
-
-    return products.filter((product) => {
-      return (
-        product.name.toLowerCase().includes(term) ||
-        product.category.toLowerCase().includes(term) ||
-        product.id.toLowerCase().includes(term)
-      )
-    })
+    return searchProducts(products, search)
   }, [search])
 
   const addToCart = (product: Product) => setCart((current) => addProductToCart(current, product))
