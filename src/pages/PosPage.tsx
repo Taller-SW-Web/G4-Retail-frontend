@@ -5,6 +5,7 @@ import CategoryFilter from '../components/molecules/CategoryFilter'
 import SearchBar from '../components/molecules/SearchBar'
 import CartPanel from '../components/organisms/CartPanel'
 import ProductCard from '../components/organisms/ProductCard'
+import { formatCurrency } from '../lib/format'
 import type { CartItem, Product } from '../types'
 
 type PosPageProps = {
@@ -116,7 +117,7 @@ export default function PosPage({
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">Total</p>
-                    <p className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">S/ {subtotal}</p>
+                    <p className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">{formatCurrency(subtotal)}</p>
                   </div>
                 </div>
               </div>

@@ -1,5 +1,7 @@
 import { IconMinus, IconPlus, IconTrash } from '@tabler/icons-react'
 import Button from '../atoms/Button'
+import { getCartItemCount } from '../../lib/cart'
+import { formatCurrency } from '../../lib/format'
 import type { CartItem } from '../../types'
 
 type CartPanelProps = {
@@ -22,7 +24,7 @@ export default function CartPanel({
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-heading text-2xl uppercase text-[var(--color-text-primary)]">Carrito</h2>
         <span className="rounded-full bg-[var(--color-surface-cloud-subtle)] px-2.5 py-1 text-xs font-semibold text-[var(--color-text-primary)]">
-          {items.reduce((sum, item) => sum + item.quantity, 0)} items
+          {getCartItemCount(items)} unidades
         </span>
       </div>
 
@@ -37,7 +39,7 @@ export default function CartPanel({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-[var(--color-text-primary)]">{item.product.name}</p>
-                  <p className="text-sm text-[var(--color-text-secondary)]">S/ {item.product.price} c/u</p>
+                  <p className="text-sm text-[var(--color-text-secondary)]">{formatCurrency(item.product.price)} c/u</p>
                 </div>
                 <button
                   type="button"
@@ -71,7 +73,7 @@ export default function CartPanel({
                 </div>
 
                 <span className="font-bold text-[var(--color-text-primary)]">
-                  S/ {item.product.price * item.quantity}
+                  {formatCurrency(item.product.price * item.quantity)}
                 </span>
               </div>
             </div>
@@ -82,11 +84,11 @@ export default function CartPanel({
       <div className="mt-6 border-t border-[var(--color-border-default)] pt-4">
         <div className="mb-4 flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
           <span>Subtotal</span>
-          <span>S/ {subtotal}</span>
+          <span>{formatCurrency(subtotal)}</span>
         </div>
         <div className="mb-4 flex items-center justify-between text-base font-bold text-[var(--color-text-primary)]">
           <span>Total</span>
-          <span>S/ {subtotal}</span>
+          <span>{formatCurrency(subtotal)}</span>
         </div>
         <Button className="w-full" variant="primary" disabled={items.length === 0}>
           Continuar al pago

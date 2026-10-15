@@ -2,6 +2,7 @@ import { IconPlus } from '@tabler/icons-react'
 import Button from '../atoms/Button'
 import StockBadge from '../molecules/StockBadge'
 import { getStockStatus } from '../../lib/inventory'
+import { formatCurrency } from '../../lib/format'
 import type { Product } from '../../types'
 
 type ProductCardProps = {
@@ -31,7 +32,7 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
             </p>
             <h3 className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">{product.name}</h3>
           </div>
-          <span className="text-lg font-bold text-[var(--color-text-primary)]">S/ {product.price}</span>
+          <span className="text-lg font-bold text-[var(--color-text-primary)]">{formatCurrency(product.price)}</span>
         </div>
 
         <div className="flex items-center justify-between">
