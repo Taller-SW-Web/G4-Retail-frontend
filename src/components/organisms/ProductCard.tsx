@@ -1,5 +1,7 @@
 import { IconPlus } from '@tabler/icons-react'
 import Button from '../atoms/Button'
+import StockBadge from '../molecules/StockBadge'
+import { getStockStatus } from '../../lib/inventory'
 import type { Product } from '../../types'
 
 type ProductCardProps = {
@@ -8,6 +10,8 @@ type ProductCardProps = {
 }
 
 export default function ProductCard({ product, onAdd }: ProductCardProps) {
+  const stockStatus = getStockStatus(product.stock)
+
   return (
     <article className="overflow-hidden rounded-2xl border border-[var(--color-border-default)] bg-white shadow-sm">
       <div className="relative h-44 overflow-hidden">
@@ -31,10 +35,15 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-[var(--color-text-secondary)]">Stock: {product.stock}</span>
-          <Button variant="primary" className="gap-2" onClick={() => onAdd(product)}>
+          <StockBadge stock={product.stock} />
+          <Button
+            variant="primary"
+            className="gap-2"
+            onClick={() => onAdd(product)}
+            disabled={!stockStatus.isAvailable}
+          >
             <IconPlus size={16} />
-            Añadir
+            {stockStatus.isAvailable ? 'Añadir' : 'Agotado'}
           </Button>
         </div>
       </div>
