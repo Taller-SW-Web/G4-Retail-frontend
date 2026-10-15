@@ -1,5 +1,6 @@
 import { IconMinus, IconPlus, IconTrash } from '@tabler/icons-react'
 import Button from '../atoms/Button'
+import EmptyState from '../molecules/EmptyState'
 import { getCartItemCount } from '../../lib/cart'
 import { formatCurrency } from '../../lib/format'
 import type { CartItem } from '../../types'
@@ -30,9 +31,10 @@ export default function CartPanel({
 
       <div className="space-y-4">
         {items.length === 0 ? (
-          <div className="rounded-xl bg-[var(--color-surface-cloud-subtle)] p-4 text-sm text-[var(--color-text-secondary)]">
-            Tu carrito está vacío.
-          </div>
+          <EmptyState
+            title="Tu carrito está vacío"
+            description="Añade productos del catálogo para preparar una venta."
+          />
         ) : (
           items.map((item) => (
             <div key={item.product.id} className="rounded-xl border border-[var(--color-border-default)] p-3">

@@ -1,7 +1,8 @@
-import { IconBolt, IconClipboardList, IconPackage, IconReceipt2 } from '@tabler/icons-react'
+import { IconBolt, IconClipboardList, IconPackage, IconReceipt2, IconSearch } from '@tabler/icons-react'
 import Badge from '../components/atoms/Badge'
 import Button from '../components/atoms/Button'
 import CategoryFilter from '../components/molecules/CategoryFilter'
+import EmptyState from '../components/molecules/EmptyState'
 import SearchBar from '../components/molecules/SearchBar'
 import CartPanel from '../components/organisms/CartPanel'
 import ProductCard from '../components/organisms/ProductCard'
@@ -130,9 +131,19 @@ export default function PosPage({
               </div>
 
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-2">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} onAdd={addToCart} />
-                ))}
+                {products.length > 0 ? (
+                  products.map((product) => (
+                    <ProductCard key={product.id} product={product} onAdd={addToCart} />
+                  ))
+                ) : (
+                  <div className="md:col-span-2">
+                    <EmptyState
+                      icon={<IconSearch size={24} />}
+                      title="No encontramos productos"
+                      description="Prueba con otro nombre, SKU o categoría."
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
