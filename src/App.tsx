@@ -3,17 +3,18 @@ import LoginPage from './pages/LoginPage'
 import PosPage from './pages/PosPage'
 import { products } from './data/products'
 import { addProductToCart, getCartSubtotal, removeCartItem, setCartItemQuantity } from './lib/cart'
-import { searchProducts } from './lib/catalog'
+import { filterProducts } from './lib/catalog'
 import type { CartItem, Product } from './types'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('Todas')
   const [cart, setCart] = useState<CartItem[]>([])
 
   const filteredProducts = useMemo(() => {
-    return searchProducts(products, search)
-  }, [search])
+    return filterProducts(products, search, category)
+  }, [search, category])
 
   const addToCart = (product: Product) => setCart((current) => addProductToCart(current, product))
 
@@ -56,6 +57,9 @@ export default function App() {
       subtotal={subtotal}
       search={search}
       onSearchChange={setSearch}
+      category={category}
+      categories={[...new Set(products.map((product) => product.category))]}
+      onCategoryChange={setCategory}
     />
   )
 }

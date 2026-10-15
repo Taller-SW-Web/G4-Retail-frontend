@@ -14,3 +14,13 @@ export function searchProducts(products: Product[], query: string): Product[] {
     ),
   )
 }
+
+export function filterProducts(
+  products: Product[],
+  query: string,
+  category: string,
+): Product[] {
+  return searchProducts(products, query).filter(
+    (product) => category === 'Todas' || product.category === category,
+  )
+}

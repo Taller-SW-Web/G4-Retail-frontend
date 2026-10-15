@@ -1,6 +1,7 @@
 import { IconBolt, IconClipboardList, IconPackage, IconReceipt2 } from '@tabler/icons-react'
 import Badge from '../components/atoms/Badge'
 import Button from '../components/atoms/Button'
+import CategoryFilter from '../components/molecules/CategoryFilter'
 import SearchBar from '../components/molecules/SearchBar'
 import CartPanel from '../components/organisms/CartPanel'
 import ProductCard from '../components/organisms/ProductCard'
@@ -16,6 +17,9 @@ type PosPageProps = {
   subtotal: number
   search: string
   onSearchChange: (value: string) => void
+  category: string
+  categories: string[]
+  onCategoryChange: (category: string) => void
 }
 
 export default function PosPage({
@@ -28,6 +32,9 @@ export default function PosPage({
   subtotal,
   search,
   onSearchChange,
+  category,
+  categories,
+  onCategoryChange,
 }: PosPageProps) {
   return (
     <main className="min-h-screen bg-[var(--color-surface-cloud)] px-4 py-6 lg:px-8">
@@ -67,6 +74,13 @@ export default function PosPage({
                   <SearchBar value={search} onChange={onSearchChange} />
                 </div>
                 <Button variant="primary">+ Nuevo ticket</Button>
+              </div>
+              <div className="mt-4">
+                <CategoryFilter
+                  categories={categories}
+                  value={category}
+                  onChange={onCategoryChange}
+                />
               </div>
             </div>
 

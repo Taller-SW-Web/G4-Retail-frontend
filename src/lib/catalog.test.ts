@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { searchProducts } from './catalog'
+import { filterProducts, searchProducts } from './catalog'
 import type { Product } from '../types'
 
 const catalog: Product[] = [
@@ -19,5 +19,11 @@ describe('searchProducts', () => {
 
   it('returns the complete catalog for an empty query', () => {
     expect(searchProducts(catalog, '  ')).toBe(catalog)
+  })
+
+  it('combines category and text filters', () => {
+    expect(filterProducts(catalog, '', 'Fútbol')).toEqual([catalog[0]])
+    expect(filterProducts(catalog, 'sku-1001', 'Running')).toEqual([])
+    expect(filterProducts(catalog, '', 'Todas')).toEqual(catalog)
   })
 })
