@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import LoginPage from './pages/LoginPage'
 import PosPage from './pages/PosPage'
 import { products } from './data/products'
 import { addProductToCart, getCartSubtotal, removeCartItem, setCartItemQuantity } from './lib/cart'
+import { loadCart, saveCart } from './lib/cartStorage'
 import { filterProducts } from './lib/catalog'
 import type { CartItem, Product } from './types'
 
@@ -10,7 +11,11 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
-  const [cart, setCart] = useState<CartItem[]>([])
+  const [cart, setCart] = useState<CartItem[]>(() => loadCart(products, window.localStorage))
+
+  useEffect(() => {
+    saveCart(cart, window.localStorage)
+  }, [cart])
 
   const filteredProducts = useMemo(() => {
     return filterProducts(products, search, category)
