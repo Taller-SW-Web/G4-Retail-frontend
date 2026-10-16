@@ -1,12 +1,13 @@
 import { IconBolt, IconClipboardList, IconPackage, IconReceipt2, IconSearch } from '@tabler/icons-react'
+import { Link } from 'react-router-dom'
 import Badge from '../components/atoms/Badge'
 import Button from '../components/atoms/Button'
 import CategoryFilter from '../components/molecules/CategoryFilter'
 import EmptyState from '../components/molecules/EmptyState'
 import SearchBar from '../components/molecules/SearchBar'
 import StatCard from '../components/molecules/StatCard'
-import CartPanel from '../components/organisms/CartPanel'
-import ProductCard from '../components/organisms/ProductCard'
+import CartPanel from '../components/organisms/carrito/CartPanel'
+import ProductCard from '../components/organisms/catalogo/ProductCard'
 import { getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
 import type { CartItem, Product } from '../types'
@@ -49,9 +50,17 @@ export default function PosPage({
             <h1 className="font-heading mt-1 text-3xl uppercase">Punto de venta</h1>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Badge tone="info">Caja abierta</Badge>
             <Badge tone="brand">Turno 08:00 - 12:00</Badge>
+            <div className="flex items-center gap-2 border-l border-[var(--color-border-inverse)] pl-3 text-xs font-semibold">
+              <Link to="/pickup" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
+                📦 Pickup (F7)
+              </Link>
+              <Link to="/caja/cierre" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
+                💵 Cierre Caja (F8)
+              </Link>
+            </div>
           </div>
         </div>
       </header>

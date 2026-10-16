@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import LoginPage from './pages/LoginPage'
-import PosPage from './pages/PosPage'
+import { BrowserRouter } from 'react-router-dom'
+import AppRouter from './router/AppRouter'
 import { products } from './data/products'
 import { addProductToCart, getCartSubtotal, removeCartItem, setCartItemQuantity } from './lib/cart'
 import { loadCart, saveCart } from './lib/cartStorage'
@@ -46,25 +46,26 @@ export default function App() {
   }
 
   const subtotal = getCartSubtotal(cart)
-
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />
-  }
+  const categories = useMemo(() => ['Todas', ...new Set(products.map((p) => p.category))], [])
 
   return (
-    <PosPage
-      products={filteredProducts}
-      cart={cart}
-      addToCart={addToCart}
-      increaseQuantity={increaseQuantity}
-      decreaseQuantity={decreaseQuantity}
-      removeFromCart={removeFromCart}
-      subtotal={subtotal}
-      search={search}
-      onSearchChange={setSearch}
-      category={category}
-      categories={[...new Set(products.map((product) => product.category))]}
-      onCategoryChange={setCategory}
-    />
+    <BrowserRouter>
+      <AppRouter
+        isAuthenticated={isAuthenticated}
+        onLogin={() => setIsAuthenticated(true)}
+        products={filteredProducts}
+        cart={cart}
+        addToCart={addToCart}
+        increaseQuantity={increaseQuantity}
+        decreaseQuantity={decreaseQuantity}
+        removeFromCart={removeFromCart}
+        subtotal={subtotal}
+        search={search}
+        onSearchChange={setSearch}
+        category={category}
+        categories={categories}
+        onCategoryChange={setCategory}
+      />
+    </BrowserRouter>
   )
 }
