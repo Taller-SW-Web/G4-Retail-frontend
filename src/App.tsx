@@ -5,10 +5,20 @@ import { products } from './data/products'
 import { addProductToCart, getCartSubtotal, removeCartItem, setCartItemQuantity } from './lib/cart'
 import { loadCart, saveCart } from './lib/cartStorage'
 import { filterProducts } from './lib/catalog'
+import { useAuthStore } from './store/authStore'
 import type { CartItem, Product } from './types'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Si quedo un token vigente, se entra sin volver a pedir credenciales: un vendedor no deberia
+  // reloguearse solo por refrescar la pagina en medio de una atencion.
+  useEffect(() => {
+    void useAuthStore
+      .getState()
+      .restaurarSesion()
+      .then(() => setIsAuthenticated(useAuthStore.getState().autenticado()))
+  }, [])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
   const [cart, setCart] = useState<CartItem[]>(() => loadCart(products, window.localStorage))
