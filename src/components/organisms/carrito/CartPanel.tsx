@@ -44,14 +44,14 @@ export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
   const motivoBloqueo = items.length === 0 ? 'Agregue productos del catálogo para habilitar el cobro' : null
 
   return (
-    <aside className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border-default)] bg-white p-5 shadow-sm md:h-full md:min-h-0">
+    <aside className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border-default)] bg-white p-4 shadow-sm md:h-full md:min-h-0">
       {/* Encabezado */}
-      <header className="space-y-3">
+      <header className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <h2 className="font-heading text-xl uppercase tracking-wide text-[var(--color-text-primary)]">
+          <h2 className="font-heading text-lg uppercase tracking-wide text-[var(--color-text-primary)]">
             Carrito de Venta
           </h2>
-          <span className="rounded-full bg-[var(--color-surface-cloud-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--color-text-primary)]">
+          <span className="rounded-full bg-[var(--color-surface-cloud-subtle)] px-2.5 py-0.5 text-xs font-bold text-[var(--color-text-primary)]">
             {totalPrendas} {totalPrendas === 1 ? 'prenda' : 'prendas'}
           </span>
         </div>
@@ -62,9 +62,9 @@ export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
             type="button"
             variant="secondary"
             onClick={() => setDialogo('espera')}
-            className="gap-1.5 px-2.5 py-1.5 text-xs"
+            className="gap-1.5 px-2.5 py-1 text-xs"
           >
-            <IconClockPause size={16} />
+            <IconClockPause size={15} />
             En Espera ({carritosEnEspera.length})
           </Button>
 
@@ -73,9 +73,9 @@ export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
             variant="secondary"
             disabled={items.length === 0}
             onClick={() => setDialogo('pausar')}
-            className="gap-1.5 px-2.5 py-1.5 text-xs"
+            className="gap-1.5 px-2.5 py-1 text-xs"
           >
-            <IconPlayerPause size={16} />
+            <IconPlayerPause size={15} />
             Pausar
           </Button>
 
@@ -84,19 +84,19 @@ export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
             variant="outline"
             disabled={items.length === 0}
             onClick={() => setDialogo('limpiar')}
-            className="ml-auto gap-1.5 px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 hover:border-red-300"
+            className="ml-auto gap-1.5 px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 hover:border-red-300"
           >
-            <IconTrash size={16} />
+            <IconTrash size={15} />
             Vaciar
           </Button>
         </div>
       </header>
 
-      {/* Lista de Líneas */}
-      <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+      {/* Lista de Líneas con scroll interno */}
+      <div className="flex-1 max-h-52 md:max-h-60 overflow-y-auto space-y-2 pr-1">
         {items.length === 0 ? (
           <EmptyState
-            icon={<IconShoppingCart size={28} className="text-[var(--color-text-secondary)]" />}
+            icon={<IconShoppingCart size={24} className="text-[var(--color-text-secondary)]" />}
             title="Carrito vacío"
             description="Escanea o selecciona artículos del catálogo para iniciar la venta."
           />

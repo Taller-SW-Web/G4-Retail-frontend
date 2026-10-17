@@ -40,10 +40,10 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-surface-cloud-subtle)] p-4">
+    <div className="space-y-2.5 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-surface-cloud-subtle)] p-3">
       {/* Sección Cupones */}
-      <div className="border-b border-[var(--color-border-default)] pb-3">
-        <label htmlFor="input-cupon" className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase text-[var(--color-text-secondary)]">
+      <div className="border-b border-[var(--color-border-default)] pb-2">
+        <label htmlFor="input-cupon" className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase text-[var(--color-text-secondary)]">
           <IconDiscount2 size={16} className="text-[var(--color-accent-signal)]" />
           Cupón de descuento
         </label>

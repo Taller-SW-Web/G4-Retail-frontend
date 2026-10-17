@@ -15,9 +15,14 @@ import ScannerSimulator from '../components/organisms/catalogo/ScannerSimulator'
 import ShiftOpenModal from '../components/organisms/caja/ShiftOpenModal'
 import { turnoActual } from '../api/caja'
 import { useCajaStore } from '../store/caja'
-import { getCartItemCount } from '../lib/cart'
+import { useAuthStore } from '../store/authStore'
+import { useCartStore } from '../store/cart'
+import { calcularTotales, getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
 import { resolveScan, sampleBarcodes } from '../lib/scanner'
+import Modal from '../components/molecules/Modal'
+import CustomerSection from '../components/organisms/clientes/CustomerSection'
+import PaymentModal from '../components/organisms/cobro/PaymentModal'
 import type { CartItem, Product } from '../types'
 
 type PosPageProps = {
@@ -52,32 +57,29 @@ export default function PosPage({
 const caja = useCajaStore((store) => store.caja)
   const setCaja = useCajaStore((store) => store.setCaja)
 
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showCustomerModal, setShowCustomerModal] = useState(false)
+  const perfil = useAuthStore((store) => store.perfil)
+  const cliente = useCartStore((store) => store.cliente)
+  const cupon = useCartStore((store) => store.cupon)
+  const totales = useMemo(() => calcularTotales(cart, cupon), [cart, cupon])
+
   const [detail, setDetail] = useState<{ product: Product; sku?: string } | null>(null)
-  const [scannedCode, setScannedCode] = useState<string | null>(null)
   const samples = useMemo(() => sampleBarcodes(products), [products])
 
   useEffect(() => {
     turnoActual().then(setCaja).catch(() => setCaja({ estado: 'CERRADA' }))
   }, [setCaja])
 
-  // Escanear equivale a escribir el codigo en el buscador: la grilla se reduce al articulo leido.
-  // La ficha se abre despues, cuando ese articulo ya llego en los resultados filtrados.
+  // Escanear o hacer clic en un botón de muestra agrega la prenda DIRECTAMENTE al carrito sin abrir modal
   const scan = (code: string) => {
-    setScannedCode(code)
-    onSearchChange(code)
+    const match = resolveScan(products, code)
+    if (match) {
+      addToCart(match.product)
+    }
   }
 
-  useEffect(() => {
-    if (!scannedCode) return
-    const match = resolveScan(products, scannedCode)
-    if (!match) return
-    setDetail({ product: match.product, sku: match.variant?.sku })
-    setScannedCode(null)
-  }, [products, scannedCode])
-
   const closeDetail = () => {
-    // Tras atender una lectura el buscador queda limpio, listo para la siguiente prenda.
-    if (scannedCode === null) onSearchChange('')
     setDetail(null)
   }
 
@@ -110,7 +112,7 @@ const caja = useCajaStore((store) => store.caja)
       </header>
 
       <section className="mx-auto mt-6 max-w-7xl">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_380px]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1.4fr)_420px] items-start">
           <div className="space-y-6">
             <div className="rounded-2xl border border-[var(--color-border-default)] bg-white p-4 shadow-sm">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -122,7 +124,9 @@ const caja = useCajaStore((store) => store.caja)
                 </div>
                 <div className="flex gap-2">
                   <Button variant="secondary">Pickup</Button>
-                  <Button variant="outline">Clientes</Button>
+                  <Button variant="outline" onClick={() => setShowCustomerModal(true)}>
+                    Clientes {cliente ? `(${cliente.nombre})` : ''}
+                  </Button>
                 </div>
               </div>
 
@@ -146,7 +150,7 @@ const caja = useCajaStore((store) => store.caja)
             <div className="grid gap-4 sm:grid-cols-3">
               <StatCard icon={<IconPackage size={18} />} label="Resultados" value={products.length} tone="signal" />
               <StatCard icon={<IconClipboardList size={18} />} label="Unidades en carrito" value={getCartItemCount(cart)} tone="volt" />
-              <StatCard icon={<IconReceipt2 size={18} />} label="Total" value={formatCurrency(subtotal)} tone="action" />
+              <StatCard icon={<IconReceipt2 size={18} />} label="Total" value={formatCurrency(totales.totalPagar)} tone="action" />
             </div>
 
             <div className="rounded-2xl border border-[var(--color-border-default)] bg-white p-4 shadow-sm">
@@ -178,13 +182,16 @@ const caja = useCajaStore((store) => store.caja)
             </div>
           </div>
 
-          <CartPanel
-            items={cart}
-            subtotal={subtotal}
-            onIncrease={increaseQuantity}
-            onDecrease={decreaseQuantity}
-            onRemove={removeFromCart}
-          />
+          <div className="lg:sticky lg:top-6 space-y-4">
+            <CartPanel
+              items={cart}
+              subtotal={subtotal}
+              onIncrease={increaseQuantity}
+              onDecrease={decreaseQuantity}
+              onRemove={removeFromCart}
+              onProceedToPayment={() => setShowPaymentModal(true)}
+            />
+          </div>
         </div>
       </section>
 
@@ -196,6 +203,54 @@ const caja = useCajaStore((store) => store.caja)
           onClose={closeDetail}
         />
       ) : null}
+
+      {showPaymentModal && (
+        <PaymentModal
+          total={totales.totalPagar}
+          cliente={
+            cliente
+              ? {
+                  id: cliente.id || cliente.numeroDocumento,
+                  nombre: cliente.nombre,
+                  tipoDocumento: (cliente.tipoDocumento === 'RUC' ? 'RUC' : 'DNI') as 'DNI' | 'RUC',
+                  numeroDocumento: cliente.numeroDocumento,
+                }
+              : {
+                  id: 'sin-doc',
+                  nombre: 'Cliente General Mostrador',
+                  tipoDocumento: 'SIN_DOCUMENTO',
+                  numeroDocumento: '',
+                }
+          }
+          items={cart.map((item) => ({
+            sku: item.product.variants?.[0]?.sku || item.product.id,
+            nombre: item.product.name,
+            talla: item.product.variants?.[0]?.size || 'U',
+            color: item.product.variants?.[0]?.color || 'Estándar',
+            cantidad: item.quantity,
+            precioUnitario: item.product.price,
+          }))}
+          vendedor={perfil?.codigoVendedor || 'VEN-001'}
+          tiendaId={perfil?.tiendaId || 'TIENDA-MIRAFLORES'}
+          onClose={() => setShowPaymentModal(false)}
+          onVentaConfirmada={() => {
+            setShowPaymentModal(false)
+            useCartStore.getState().vaciarCarrito()
+          }}
+        />
+      )}
+
+      {showCustomerModal && (
+        <Modal title="Identificación de Cliente" onClose={() => setShowCustomerModal(false)}>
+          <CustomerSection
+            cliente={cliente}
+            onAsociarCliente={(c) => {
+              useCartStore.getState().setCliente(c)
+              setShowCustomerModal(false)
+            }}
+          />
+        </Modal>
+      )}
     </main>
   )
 }
