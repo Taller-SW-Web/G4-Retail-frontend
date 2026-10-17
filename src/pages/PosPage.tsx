@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IconBolt, IconClipboardList, IconPackage, IconReceipt2, IconSearch } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import Badge from '../components/atoms/Badge'
@@ -10,11 +10,14 @@ import StatCard from '../components/molecules/StatCard'
 import UserSessionBadge from '../components/organisms/auth/UserSessionBadge'
 import CartPanel from '../components/organisms/carrito/CartPanel'
 import ProductCard from '../components/organisms/catalogo/ProductCard'
+import ProductDetailModal from '../components/organisms/catalogo/ProductDetailModal'
+import ScannerSimulator from '../components/organisms/catalogo/ScannerSimulator'
 import ShiftOpenModal from '../components/organisms/caja/ShiftOpenModal'
 import { turnoActual } from '../api/caja'
 import { useCajaStore } from '../store/caja'
 import { getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
+import { resolveScan, sampleBarcodes } from '../lib/scanner'
 import type { CartItem, Product } from '../types'
 
 type PosPageProps = {
@@ -46,12 +49,37 @@ export default function PosPage({
   categories,
   onCategoryChange,
 }: PosPageProps) {
-  const caja = useCajaStore((store) => store.caja)
+const caja = useCajaStore((store) => store.caja)
   const setCaja = useCajaStore((store) => store.setCaja)
+
+  const [detail, setDetail] = useState<{ product: Product; sku?: string } | null>(null)
+  const [scannedCode, setScannedCode] = useState<string | null>(null)
+  const samples = useMemo(() => sampleBarcodes(products), [products])
 
   useEffect(() => {
     turnoActual().then(setCaja).catch(() => setCaja({ estado: 'CERRADA' }))
   }, [setCaja])
+
+  // Escanear equivale a escribir el codigo en el buscador: la grilla se reduce al articulo leido.
+  // La ficha se abre despues, cuando ese articulo ya llego en los resultados filtrados.
+  const scan = (code: string) => {
+    setScannedCode(code)
+    onSearchChange(code)
+  }
+
+  useEffect(() => {
+    if (!scannedCode) return
+    const match = resolveScan(products, scannedCode)
+    if (!match) return
+    setDetail({ product: match.product, sku: match.variant?.sku })
+    setScannedCode(null)
+  }, [products, scannedCode])
+
+  const closeDetail = () => {
+    // Tras atender una lectura el buscador queda limpio, listo para la siguiente prenda.
+    if (scannedCode === null) onSearchChange('')
+    setDetail(null)
+  }
 
   return (
     <main className="min-h-screen bg-[var(--color-surface-cloud)] px-4 py-6 lg:px-8">
@@ -113,6 +141,8 @@ export default function PosPage({
               </div>
             </div>
 
+            <ScannerSimulator onScan={scan} samples={samples} />
+
             <div className="grid gap-4 sm:grid-cols-3">
               <StatCard icon={<IconPackage size={18} />} label="Resultados" value={products.length} tone="signal" />
               <StatCard icon={<IconClipboardList size={18} />} label="Unidades en carrito" value={getCartItemCount(cart)} tone="volt" />
@@ -128,7 +158,12 @@ export default function PosPage({
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-2">
                 {products.length > 0 ? (
                   products.map((product) => (
-                    <ProductCard key={product.id} product={product} onAdd={addToCart} />
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAdd={addToCart}
+                      onOpen={(selected) => setDetail({ product: selected })}
+                    />
                   ))
                 ) : (
                   <div className="md:col-span-2">
@@ -152,6 +187,15 @@ export default function PosPage({
           />
         </div>
       </section>
+
+      {detail ? (
+        <ProductDetailModal
+          product={detail.product}
+          initialSku={detail.sku}
+          onAdd={addToCart}
+          onClose={closeDetail}
+        />
+      ) : null}
     </main>
   )
 }
