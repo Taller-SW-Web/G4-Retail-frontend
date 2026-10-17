@@ -9,8 +9,9 @@
 import { api, USA_MOCKS, type Problema } from './http'
 import { loginSimulado, type RespuestaLogin } from './mock/seguridad'
 
+const rawAuthUrl = import.meta.env.VITE_AUTH_URL?.trim()
 const AUTH_URL =
-  import.meta.env.VITE_AUTH_URL ??
+  (rawAuthUrl && !rawAuthUrl.includes('railway.app') ? rawAuthUrl : null) ||
   (import.meta.env.DEV && typeof window !== 'undefined'
     ? window.location.origin
     : 'https://g7-auth-service.onrender.com')
