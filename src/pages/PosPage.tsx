@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconBolt, IconClipboardList, IconPackage, IconReceipt2, IconSearch } from '@tabler/icons-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Badge from '../components/atoms/Badge'
 import Button from '../components/atoms/Button'
 import CategoryFilter from '../components/molecules/CategoryFilter'
+import ConfirmDialog from '../components/molecules/ConfirmDialog'
 import EmptyState from '../components/molecules/EmptyState'
 import SearchBar from '../components/molecules/SearchBar'
 import StatCard from '../components/molecules/StatCard'
@@ -54,11 +55,13 @@ export default function PosPage({
   categories,
   onCategoryChange,
 }: PosPageProps) {
-const caja = useCajaStore((store) => store.caja)
+  const navigate = useNavigate()
+  const caja = useCajaStore((store) => store.caja)
   const setCaja = useCajaStore((store) => store.setCaja)
 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
+  const [showConfirmNuevoTicket, setShowConfirmNuevoTicket] = useState(false)
   const perfil = useAuthStore((store) => store.perfil)
   const cliente = useCartStore((store) => store.cliente)
   const cupon = useCartStore((store) => store.cupon)
@@ -76,6 +79,22 @@ const caja = useCajaStore((store) => store.caja)
     const match = resolveScan(products, code)
     if (match) {
       addToCart(match.product)
+    }
+  }
+
+  const iniciarNuevoTicket = () => {
+    useCartStore.getState().vaciarCarrito()
+    useCartStore.getState().setCliente(null)
+    onSearchChange('')
+    onCategoryChange('Todas')
+    setShowConfirmNuevoTicket(false)
+  }
+
+  const handleNuevoTicket = () => {
+    if (cart.length > 0) {
+      setShowConfirmNuevoTicket(true)
+    } else {
+      iniciarNuevoTicket()
     }
   }
 
@@ -123,7 +142,9 @@ const caja = useCajaStore((store) => store.caja)
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="secondary">Pickup</Button>
+                  <Button variant="secondary" onClick={() => navigate('/pickup')}>
+                    Pickup
+                  </Button>
                   <Button variant="outline" onClick={() => setShowCustomerModal(true)}>
                     Clientes {cliente ? `(${cliente.nombre})` : ''}
                   </Button>
@@ -134,7 +155,9 @@ const caja = useCajaStore((store) => store.caja)
                 <div className="flex-1">
                   <SearchBar value={search} onChange={onSearchChange} />
                 </div>
-                <Button variant="primary">+ Nuevo ticket</Button>
+                <Button variant="primary" onClick={handleNuevoTicket}>
+                  + Nuevo ticket
+                </Button>
               </div>
               <div className="mt-4">
                 <CategoryFilter
@@ -250,6 +273,20 @@ const caja = useCajaStore((store) => store.caja)
             }}
           />
         </Modal>
+      )}
+
+      {showConfirmNuevoTicket && (
+        <ConfirmDialog
+          title="¿Iniciar nuevo ticket?"
+          confirmLabel="Iniciar nuevo ticket"
+          confirmVariant="primary"
+          onConfirm={iniciarNuevoTicket}
+          onCancel={() => setShowConfirmNuevoTicket(false)}
+        >
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            El carrito actual contiene productos. Si inicias un nuevo ticket se vaciará el carrito y se restablecerá el cliente.
+          </p>
+        </ConfirmDialog>
       )}
     </main>
   )
