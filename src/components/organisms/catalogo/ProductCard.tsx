@@ -8,10 +8,14 @@ import type { Product } from '../../../types'
 type ProductCardProps = {
   product: Product
   onAdd: (product: Product) => void
+  /** Abre la ficha con la matriz de talla y color (RF-05). */
+  onOpen?: (product: Product) => void
 }
 
-export default function ProductCard({ product, onAdd }: ProductCardProps) {
+export default function ProductCard({ product, onAdd, onOpen }: ProductCardProps) {
   const stockStatus = getStockStatus(product.stock)
+  // Con tallas y colores no se puede añadir desde la tarjeta: habría que adivinar cuál se vende.
+  const hasVariants = Boolean(product.variants?.length)
 
   return (
     <article className="overflow-hidden rounded-2xl border border-[var(--color-border-default)] bg-white shadow-sm">
@@ -30,7 +34,19 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
               {product.category}
             </p>
-            <h3 className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">{product.name}</h3>
+            <h3 className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+              {onOpen ? (
+                <button
+                  type="button"
+                  onClick={() => onOpen(product)}
+                  className="text-left hover:underline"
+                >
+                  {product.name}
+                </button>
+              ) : (
+                product.name
+              )}
+            </h3>
           </div>
           <span className="text-lg font-bold text-[var(--color-text-primary)]">{formatCurrency(product.price)}</span>
         </div>
@@ -40,11 +56,11 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
           <Button
             variant="primary"
             className="gap-2"
-            onClick={() => onAdd(product)}
+            onClick={() => (hasVariants && onOpen ? onOpen(product) : onAdd(product))}
             disabled={!stockStatus.isAvailable}
           >
             <IconPlus size={16} />
-            {stockStatus.isAvailable ? 'Añadir' : 'Agotado'}
+            {!stockStatus.isAvailable ? 'Agotado' : hasVariants ? 'Elegir talla' : 'Añadir'}
           </Button>
         </div>
       </div>

@@ -56,7 +56,8 @@ export default function App() {
   }
 
   const subtotal = getCartSubtotal(cart)
-  const categories = useMemo(() => ['Todas', ...new Set(products.map((p) => p.category))], [])
+  // Sin 'Todas': esa opción la pone CategoryFilter, y agregarla aquí la duplicaba en la barra.
+  const categories = useMemo(() => [...new Set(products.map((p) => p.category))], [])
 
   return (
     <BrowserRouter>

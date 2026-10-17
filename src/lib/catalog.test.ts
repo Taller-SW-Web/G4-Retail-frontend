@@ -27,3 +27,22 @@ describe('searchProducts', () => {
     expect(filterProducts(catalog, '', 'Todas')).toEqual(catalog)
   })
 })
+
+describe('búsqueda por etiqueta (RF-04)', () => {
+  const withVariants: Product[] = [
+    {
+      ...catalog[1],
+      variants: [
+        { sku: 'ZAPVEL-38-NEG', barcode: '7751001000012', size: '38', color: 'Negro', stock: 4 },
+      ],
+    },
+  ]
+
+  it('encuentra el artículo por el SKU de una de sus variantes', () => {
+    expect(searchProducts(withVariants, 'ZAPVEL-38-NEG')).toEqual(withVariants)
+  })
+
+  it('encuentra el artículo por el código de barras que dispara el lector', () => {
+    expect(searchProducts(withVariants, '7751001000012')).toEqual(withVariants)
+  })
+})
