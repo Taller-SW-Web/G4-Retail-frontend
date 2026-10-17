@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { IconLogout, IconPrinter } from '@tabler/icons-react'
 import Button from '../components/atoms/Button'
 import Alert from '../components/molecules/Alert'
@@ -25,12 +25,18 @@ interface Resultado {
  * recién entonces se muestra el resultado. Enseñarlo antes invalidaría el control.
  */
 export default function CashClosePage() {
+  const navigate = useNavigate()
   const perfil = useAuthStore((store) => store.perfil)
   const nombre = useAuthStore((store) => store.nombre)
   const salir = useAuthStore((store) => store.salir)
   const caja = useCajaStore((store) => store.caja)
   const setCaja = useCajaStore((store) => store.setCaja)
   const setUltimoReporteZ = useCajaStore((store) => store.setUltimoReporteZ)
+
+  const handleSalir = () => {
+    salir()
+    navigate('/login')
+  }
 
   const [conteo, setConteo] = useState<Conteo>({})
   const [observaciones, setObservaciones] = useState('')
@@ -81,7 +87,7 @@ export default function CashClosePage() {
           <Button onClick={() => window.print()}>
             <IconPrinter size={20} aria-hidden /> Imprimir Reporte Z
           </Button>
-          <Button variant="outline" onClick={salir}>
+          <Button variant="outline" onClick={handleSalir}>
             <IconLogout size={20} aria-hidden /> Cerrar sesión / Salir
           </Button>
         </div>

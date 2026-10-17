@@ -10,15 +10,14 @@ import { useCartStore } from './store/cart'
 import type { Product } from './types'
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const token = useAuthStore((s) => s.token)
+  const perfil = useAuthStore((s) => s.perfil)
+  const isAuthenticated = Boolean(token && perfil)
 
   // Si quedo un token vigente, se entra sin volver a pedir credenciales: un vendedor no deberia
   // reloguearse solo por refrescar la pagina en medio de una atencion.
   useEffect(() => {
-    void useAuthStore
-      .getState()
-      .restaurarSesion()
-      .then(() => setIsAuthenticated(useAuthStore.getState().autenticado()))
+    void useAuthStore.getState().restaurarSesion()
 
     const inicial = loadCart(products, window.localStorage)
     if (inicial.length > 0) {
@@ -50,7 +49,7 @@ export default function App() {
     <BrowserRouter>
       <AppRouter
         isAuthenticated={isAuthenticated}
-        onLogin={() => setIsAuthenticated(true)}
+        onLogin={() => {}}
         products={filteredProducts}
         cart={cart}
         addToCart={addToCart}

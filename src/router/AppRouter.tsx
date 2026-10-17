@@ -60,11 +60,20 @@ export default function AppRouter(props: AppRouterProps) {
           )
         }
       />
-      <Route path="/pickup" element={<PickupPage />} />
-      <Route path="/caja/cierre" element={<CashClosePage />} />
-      <Route path="/pos/comprobante" element={<ReceiptPage />} />
-      <Route path="/" element={<Navigate to="/pos" replace />} />
-      <Route path="*" element={<Navigate to="/pos" replace />} />
+      <Route
+        path="/pickup"
+        element={props.isAuthenticated ? <PickupPage /> : <Navigate to="/login" replace />}
+      />
+      <Route
+        path="/caja/cierre"
+        element={props.isAuthenticated ? <CashClosePage /> : <Navigate to="/login" replace />}
+      />
+      <Route
+        path="/pos/comprobante"
+        element={props.isAuthenticated ? <ReceiptPage /> : <Navigate to="/login" replace />}
+      />
+      <Route path="/" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
+      <Route path="*" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
     </Routes>
   )
 }

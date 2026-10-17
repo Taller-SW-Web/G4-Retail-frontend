@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { IconLogout, IconUserCircle } from '@tabler/icons-react'
 import { useAuthStore } from '../../../store/authStore'
 
@@ -12,11 +13,17 @@ import { useAuthStore } from '../../../store/authStore'
  * `GET /api/v1/retail/perfil`, que es lo que sabe Retail.
  */
 export default function UserSessionBadge() {
+  const navigate = useNavigate()
   const perfil = useAuthStore((estado) => estado.perfil)
   const nombre = useAuthStore((estado) => estado.nombre)
   const salir = useAuthStore((estado) => estado.salir)
 
   if (!perfil) return null
+
+  const handleSalir = () => {
+    salir()
+    navigate('/login')
+  }
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-[var(--color-border-inverse)] bg-[var(--color-surface-ink-soft)] px-4 py-2">
@@ -31,7 +38,7 @@ export default function UserSessionBadge() {
 
       <button
         type="button"
-        onClick={salir}
+        onClick={handleSalir}
         title="Cerrar sesión"
         aria-label="Cerrar sesión"
         className="rounded-lg p-2 transition hover:bg-[var(--color-surface-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-volt)]"
