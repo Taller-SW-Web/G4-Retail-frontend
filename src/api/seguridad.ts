@@ -9,8 +9,14 @@
 import { api, USA_MOCKS, type Problema } from './http'
 import { loginSimulado, type RespuestaLogin } from './mock/seguridad'
 
-const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? 'https://g7-auth-service.onrender.com'
-const USAR_AUTH_MOCK = import.meta.env.VITE_USE_AUTH_MOCK === 'true' || USA_MOCKS
+const AUTH_URL =
+  import.meta.env.VITE_AUTH_URL ??
+  (import.meta.env.DEV && typeof window !== 'undefined'
+    ? window.location.origin
+    : 'https://g7-auth-service.onrender.com')
+const USAR_AUTH_MOCK =
+  import.meta.env.VITE_USE_AUTH_MOCK === 'true' ||
+  (import.meta.env.VITE_USE_AUTH_MOCK !== 'false' && USA_MOCKS)
 
 /** Respuesta de `GET /api/v1/retail/perfil` (contrato §5.1). */
 export interface Perfil {
