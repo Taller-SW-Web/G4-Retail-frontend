@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import AppRouter from './router/AppRouter'
 import { products } from './data/products'
-import { addProductToCart, getCartSubtotal, removeCartItem, setCartItemQuantity } from './lib/cart'
+import { getCartSubtotal } from './lib/cart'
 import { loadCart, saveCart } from './lib/cartStorage'
 import { filterProducts } from './lib/catalog'
 import { useAuthStore } from './store/authStore'
-import type { CartItem, Product } from './types'
+import { useCartStore } from './store/cart'
+import type { Product } from './types'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -18,10 +19,15 @@ export default function App() {
       .getState()
       .restaurarSesion()
       .then(() => setIsAuthenticated(useAuthStore.getState().autenticado()))
+
+    const inicial = loadCart(products, window.localStorage)
+    if (inicial.length > 0) {
+      useCartStore.getState().cargarCarrito(inicial)
+    }
   }, [])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
-  const [cart, setCart] = useState<CartItem[]>(() => loadCart(products, window.localStorage))
+  const cart = useCartStore((s) => s.items)
 
   useEffect(() => {
     saveCart(cart, window.localStorage)
@@ -31,29 +37,10 @@ export default function App() {
     return filterProducts(products, search, category)
   }, [search, category])
 
-  const addToCart = (product: Product) => setCart((current) => addProductToCart(current, product))
-
-  const increaseQuantity = (productId: string) => {
-    setCart((current) => {
-      const item = current.find((currentItem) => currentItem.product.id === productId)
-      return item
-        ? setCartItemQuantity(current, productId, item.quantity + 1)
-        : current
-    })
-  }
-
-  const decreaseQuantity = (productId: string) => {
-    setCart((current) => {
-      const item = current.find((currentItem) => currentItem.product.id === productId)
-      return item
-        ? setCartItemQuantity(current, productId, item.quantity - 1)
-        : current
-    })
-  }
-
-  const removeFromCart = (productId: string) => {
-    setCart((current) => removeCartItem(current, productId))
-  }
+  const addToCart = (product: Product) => useCartStore.getState().agregarProducto(product)
+  const increaseQuantity = (productId: string) => useCartStore.getState().aumentarCantidad(productId)
+  const decreaseQuantity = (productId: string) => useCartStore.getState().disminuirCantidad(productId)
+  const removeFromCart = (productId: string) => useCartStore.getState().quitarProducto(productId)
 
   const subtotal = getCartSubtotal(cart)
   // Sin 'Todas': esa opción la pone CategoryFilter, y agregarla aquí la duplicaba en la barra.
