@@ -63,16 +63,21 @@ export function registrarPerdidaDeSesion(accion: () => void): void {
 }
 
 async function peticion<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
+  const esUrlAbsoluta = ruta.startsWith('http://') || ruta.startsWith('https://')
+  const url = esUrlAbsoluta ? ruta : API_URL + ruta
+
   const cabeceras: Record<string, string> = {
     Accept: 'application/json',
-    'X-Correlation-Id': crypto.randomUUID(),
+  }
+  if (!esUrlAbsoluta) {
+    cabeceras['X-Correlation-Id'] = crypto.randomUUID()
   }
   if (cuerpo !== undefined) cabeceras['Content-Type'] = 'application/json'
-  if (tokenActual) cabeceras.Authorization = `Bearer ${tokenActual}`
+  if (tokenActual && !esUrlAbsoluta) cabeceras.Authorization = `Bearer ${tokenActual}`
 
   let respuesta: Response
   try {
-    respuesta = await fetch(API_URL + ruta, {
+    respuesta = await fetch(url, {
       method: metodo,
       headers: cabeceras,
       body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
@@ -85,7 +90,7 @@ async function peticion<T>(metodo: string, ruta: string, cuerpo?: unknown): Prom
     })
   }
 
-  if (respuesta.status === 401) {
+  if (respuesta.status === 401 && !esUrlAbsoluta) {
     definirToken(null)
     alPerderSesion?.()
   }

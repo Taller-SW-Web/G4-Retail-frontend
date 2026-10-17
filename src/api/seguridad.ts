@@ -9,6 +9,8 @@
 import { api, USA_MOCKS, type Problema } from './http'
 import { loginSimulado, type RespuestaLogin } from './mock/seguridad'
 
+const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? 'https://g7-auth-service.onrender.com'
+
 /** Respuesta de `GET /api/v1/retail/perfil` (contrato §5.1). */
 export interface Perfil {
   usuarioId: string
@@ -21,7 +23,10 @@ export interface Perfil {
 export async function iniciarSesion(correo: string, clave: string): Promise<RespuestaLogin> {
   if (USA_MOCKS) return loginSimulado(correo, clave)
 
-  return api.post<RespuestaLogin>('/api/v1/auth/login', { usuario: correo, clave })
+  return api.post<RespuestaLogin>(`${AUTH_URL}/api/v1/auth/login`, {
+    correo: correo.trim().toLowerCase(),
+    contrasena: clave,
+  })
 }
 
 export function obtenerPerfil(): Promise<Perfil> {
@@ -39,8 +44,13 @@ export function nombreDelToken(token: string): string | null {
   try {
     const carga = token.split('.')[1]
     const json = atob(carga.replace(/-/g, '+').replace(/_/g, '/'))
-    const claims = JSON.parse(decodeURIComponent(escape(json))) as { nombre?: string }
-    return claims.nombre ?? null
+    const claims = JSON.parse(decodeURIComponent(escape(json))) as {
+      nombre?: string
+      nombreCompleto?: string
+      email?: string
+      sub?: string
+    }
+    return claims.nombre ?? claims.nombreCompleto ?? claims.email ?? claims.sub ?? null
   } catch {
     return null
   }
