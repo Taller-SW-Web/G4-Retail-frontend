@@ -1,101 +1,163 @@
-import { IconMinus, IconPlus, IconTrash } from '@tabler/icons-react'
+import { useState } from 'react'
+import { IconCash, IconClockPause, IconPlayerPause, IconShoppingCart, IconTrash } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
+import ConfirmDialog from '../../molecules/ConfirmDialog'
 import EmptyState from '../../molecules/EmptyState'
-import { getCartItemCount } from '../../../lib/cart'
-import { formatCurrency } from '../../../lib/format'
-import type { CartItem } from '../../../types'
+import CartLine from './CartLine'
+import TotalsPanel from './TotalsPanel'
+import { HeldCartsModal, HoldCartModal } from './HeldCarts'
+import { calcularTotales, getCartItemCount } from '../../../lib/cart'
+import { useCartStore } from '../../../store/cart'
 
-type CartPanelProps = {
-  items: CartItem[]
-  subtotal: number
-  onIncrease: (id: string) => void
-  onDecrease: (id: string) => void
-  onRemove: (id: string) => void
+type DialogoActivo = 'pausar' | 'espera' | 'limpiar' | null
+
+interface CartPanelProps {
+  items?: import('../../../types').CartItem[]
+  subtotal?: number
+  onIncrease?: (id: string) => void
+  onDecrease?: (id: string) => void
+  onRemove?: (id: string) => void
+  onProceedToPayment?: () => void
 }
 
-export default function CartPanel({
-  items,
-  subtotal,
-  onIncrease,
-  onDecrease,
-  onRemove,
-}: CartPanelProps) {
-  return (
-    <aside className="rounded-2xl border border-[var(--color-border-default)] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-heading text-2xl uppercase text-[var(--color-text-primary)]">Carrito</h2>
-        <span className="rounded-full bg-[var(--color-surface-cloud-subtle)] px-2.5 py-1 text-xs font-semibold text-[var(--color-text-primary)]">
-          {getCartItemCount(items)} unidades
-        </span>
-      </div>
+/**
+ * Panel lateral del carrito de compras en mostrador POS (F4 — RF-10, RF-11, RF-12).
+ *
+ * Funcionalidades:
+ * - Listado reactivo de prendas en mostrador con validación de stock local.
+ * - Suspensión de carritos para probadores (Hold/Resume).
+ * - Cálculo consolidado con fórmulas fiscales SUNAT e IGV 18%.
+ * - Habilitación condicionada del botón de cobro (F5).
+ */
+export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
+  const items = useCartStore((s) => s.items)
+  const cupon = useCartStore((s) => s.cupon)
+  const vaciarCarrito = useCartStore((s) => s.vaciarCarrito)
+  const carritosEnEspera = useCartStore((s) => s.carritosEnEspera)
 
-      <div className="space-y-4">
+  const [dialogo, setDialogo] = useState<DialogoActivo>(null)
+
+  const totales = calcularTotales(items, cupon)
+  const totalPrendas = getCartItemCount(items)
+
+  const puedeCobrar = items.length > 0 && totales.totalPagar > 0
+  const motivoBloqueo = items.length === 0 ? 'Agregue productos del catálogo para habilitar el cobro' : null
+
+  return (
+    <aside className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border-default)] bg-white p-5 shadow-sm md:h-full md:min-h-0">
+      {/* Encabezado */}
+      <header className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-xl uppercase tracking-wide text-[var(--color-text-primary)]">
+            Carrito de Venta
+          </h2>
+          <span className="rounded-full bg-[var(--color-surface-cloud-subtle)] px-2.5 py-1 text-xs font-bold text-[var(--color-text-primary)]">
+            {totalPrendas} {totalPrendas === 1 ? 'prenda' : 'prendas'}
+          </span>
+        </div>
+
+        {/* Barra de Acciones de Mostrador (RF-10) */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setDialogo('espera')}
+            className="gap-1.5 px-2.5 py-1.5 text-xs"
+          >
+            <IconClockPause size={16} />
+            En Espera ({carritosEnEspera.length})
+          </Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={items.length === 0}
+            onClick={() => setDialogo('pausar')}
+            className="gap-1.5 px-2.5 py-1.5 text-xs"
+          >
+            <IconPlayerPause size={16} />
+            Pausar
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={items.length === 0}
+            onClick={() => setDialogo('limpiar')}
+            className="ml-auto gap-1.5 px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 hover:border-red-300"
+          >
+            <IconTrash size={16} />
+            Vaciar
+          </Button>
+        </div>
+      </header>
+
+      {/* Lista de Líneas */}
+      <div className="flex-1 space-y-3 overflow-y-auto pr-1">
         {items.length === 0 ? (
           <EmptyState
-            title="Tu carrito está vacío"
-            description="Añade productos del catálogo para preparar una venta."
+            icon={<IconShoppingCart size={28} className="text-[var(--color-text-secondary)]" />}
+            title="Carrito vacío"
+            description="Escanea o selecciona artículos del catálogo para iniciar la venta."
           />
         ) : (
           items.map((item) => (
-            <div key={item.product.id} className="rounded-xl border border-[var(--color-border-default)] p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-[var(--color-text-primary)]">{item.product.name}</p>
-                  <p className="text-sm text-[var(--color-text-secondary)]">{formatCurrency(item.product.price)} c/u</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRemove(item.product.id)}
-                  className="rounded-lg p-1 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-cloud-subtle)]"
-                  aria-label={`Eliminar ${item.product.name}`}
-                >
-                  <IconTrash size={16} />
-                </button>
-              </div>
-
-              <div className="mt-3 flex items-center justify-between">
-                <div className="flex items-center gap-2 rounded-lg bg-[var(--color-surface-cloud-subtle)] p-1">
-                  <button
-                    type="button"
-                    onClick={() => onDecrease(item.product.id)}
-                    className="rounded-md p-1.5 hover:bg-white"
-                    aria-label={`Disminuir cantidad de ${item.product.name}`}
-                  >
-                    <IconMinus size={14} />
-                  </button>
-                  <span className="min-w-6 text-center text-sm font-semibold">{item.quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => onIncrease(item.product.id)}
-                    className="rounded-md p-1.5 hover:bg-white"
-                    aria-label={`Aumentar cantidad de ${item.product.name}`}
-                  >
-                    <IconPlus size={14} />
-                  </button>
-                </div>
-
-                <span className="font-bold text-[var(--color-text-primary)]">
-                  {formatCurrency(item.product.price * item.quantity)}
-                </span>
-              </div>
-            </div>
+            <CartLine key={item.product.id} item={item} />
           ))
         )}
       </div>
 
-      <div className="mt-6 border-t border-[var(--color-border-default)] pt-4">
-        <div className="mb-4 flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
-          <span>Subtotal</span>
-          <span>{formatCurrency(subtotal)}</span>
-        </div>
-        <div className="mb-4 flex items-center justify-between text-base font-bold text-[var(--color-text-primary)]">
-          <span>Total</span>
-          <span>{formatCurrency(subtotal)}</span>
-        </div>
-        <Button className="w-full" variant="primary" disabled={items.length === 0}>
-          Continuar al pago
+      {/* Resumen Financiero SUNAT (RF-11, RF-12) */}
+      <TotalsPanel totales={totales} />
+
+      {/* Botón Principal de Cobro */}
+      <div className="space-y-1.5">
+        <Button
+          type="button"
+          variant="primary"
+          disabled={!puedeCobrar}
+          onClick={onProceedToPayment}
+          className="w-full gap-2 py-3 text-base font-bold uppercase tracking-wider"
+        >
+          <IconCash size={20} aria-hidden />
+          Proceder al Cobro
         </Button>
+        {motivoBloqueo && (
+          <p className="text-center text-xs text-[var(--color-text-secondary)]">
+            {motivoBloqueo}
+          </p>
+        )}
       </div>
+
+      {/* Diálogos y Modales */}
+      {dialogo === 'pausar' && (
+        <HoldCartModal
+          onClose={() => setDialogo(null)}
+          onSuccess={() => setDialogo(null)}
+        />
+      )}
+
+      {dialogo === 'espera' && (
+        <HeldCartsModal
+          onClose={() => setDialogo(null)}
+          onResumed={() => setDialogo(null)}
+        />
+      )}
+
+      {dialogo === 'limpiar' && (
+        <ConfirmDialog
+          title="Vaciar Carrito"
+          confirmLabel="Vaciar Carrito"
+          confirmVariant="primary"
+          onCancel={() => setDialogo(null)}
+          onConfirm={() => {
+            vaciarCarrito()
+            setDialogo(null)
+          }}
+        >
+          ¿Desea retirar todas las prendas del carrito actual y liberar el mostrador?
+        </ConfirmDialog>
+      )}
     </aside>
   )
 }
