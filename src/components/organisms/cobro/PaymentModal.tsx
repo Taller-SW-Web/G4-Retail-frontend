@@ -45,11 +45,22 @@ export interface PaymentModalProps {
     items: ItemVenta[]
     cliente: ClienteResumen
     vendedor: string
+    serie: string
+    correlativo: string
+    fechaEmision: string
   }) => void
 }
 
 const MONTO_BOLETA_REQUIERE_DNI = 700
 const BILLETES = [50, 100, 200]
+
+/** Genera un correlativo secuencial mock a partir del contador en sessionStorage. */
+function generarCorrelativo(): string {
+  const key = 'f5_correlativo_seq'
+  const seq = Number(sessionStorage.getItem(key) || '0') + 1
+  sessionStorage.setItem(key, String(seq))
+  return String(seq).padStart(5, '0')
+}
 
 /** RF-13 / RF-14 / RF-15: cobro presencial, tipo de comprobante y creación de la orden. */
 export default function PaymentModal({
@@ -98,8 +109,11 @@ export default function PaymentModal({
       await new Promise((r) => setTimeout(r, 800)) // simula latencia de red
 
       const pedidoId = `PED-${Date.now()}`
+      const serie = tipoComprobante === 'FACTURA' ? 'F001' : 'B001'
+      const correlativo = generarCorrelativo()
+      const fechaEmision = new Date().toISOString()
 
-      onVentaConfirmada({
+      const ventaCompleta = {
         pedidoId,
         tipoComprobante,
         medioPago: medio,
@@ -112,7 +126,15 @@ export default function PaymentModal({
         items,
         cliente,
         vendedor,
-      })
+        serie,
+        correlativo,
+        fechaEmision,
+      }
+
+      // Persistir en sessionStorage ANTES de navegar para que ReceiptPage pueda leerla
+      sessionStorage.setItem('f5_ultima_venta', JSON.stringify(ventaCompleta))
+
+      onVentaConfirmada(ventaCompleta)
 
       navigate('/pos/comprobante')
     } catch {
