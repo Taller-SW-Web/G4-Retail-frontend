@@ -4,6 +4,9 @@
  * Un solo archivo por dominio, como `api/caja.ts`. Con `VITE_USE_MOCKS=true` responde con pedidos
  * de ejemplo; con `false` se llama al backend real.
  *
+ * Rutas del contrato (`api-contracts.md` §5.7): `GET /retail/pickup/pendientes` y
+ * `POST /retail/pickup/{pedidoId}/entrega`.
+ *
  * Los pedidos entregados se guardan en `sessionStorage` para que no reaparezcan en la bandeja al
  * recargar la página durante el turno.
  */
@@ -44,13 +47,13 @@ export interface ConstanciaEntrega {
 /** RF-18: pedidos pickup de la tienda del vendedor que aún no se entregan. */
 export function listarPickups(): Promise<PedidoPickup[]> {
   if (USA_MOCKS) return listarPickupsSimulados()
-  return api.get<PedidoPickup[]>('/api/v1/retail/pedidos/pickup')
+  return api.get<PedidoPickup[]>('/api/v1/retail/pickup/pendientes')
 }
 
 /** RF-19: registra la entrega física y devuelve la constancia digital. */
 export function confirmarEntrega(pedidoId: string, entrega: EntregaPickup): Promise<ConstanciaEntrega> {
   if (USA_MOCKS) return confirmarEntregaSimulada(pedidoId, entrega)
-  return api.post<ConstanciaEntrega>(`/api/v1/retail/pedidos/${encodeURIComponent(pedidoId)}/entrega`, entrega)
+  return api.post<ConstanciaEntrega>(`/api/v1/retail/pickup/${encodeURIComponent(pedidoId)}/entrega`, entrega)
 }
 
 export const totalPrendas = (articulos: ArticuloBulto[]) => articulos.reduce((suma, a) => suma + a.cantidad, 0)
