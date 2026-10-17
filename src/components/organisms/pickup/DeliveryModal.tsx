@@ -4,7 +4,8 @@ import Button from '../../atoms/Button'
 import Alert from '../../molecules/Alert'
 import Modal from '../../molecules/Modal'
 import { useAuthStore } from '../../../store/authStore'
-import { confirmarEntrega, type PedidoPickup } from '../../../store/pickup'
+import { ApiError } from '../../../api/http'
+import { confirmarEntrega, type PedidoPickup } from '../../../api/pickupApi'
 import { formatFechaHora } from '../../../lib/format'
 
 interface DeliveryModalProps {
@@ -65,7 +66,7 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
       onEntregado(pedido.pedidoId)
       setConstancia({ constanciaId: respuesta.constanciaId, fechaHora: respuesta.fechaHoraEntrega, dni, nombre: nombre.trim(), esTitular })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo registrar la entrega. Intenta nuevamente')
+      setError(err instanceof ApiError ? err.message : 'No se pudo registrar la entrega. Intenta nuevamente')
     } finally {
       setProcesando(false)
     }

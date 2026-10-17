@@ -8,7 +8,8 @@ import EmptyState from '../components/molecules/EmptyState'
 import SearchBar from '../components/molecules/SearchBar'
 import DeliveryModal from '../components/organisms/pickup/DeliveryModal'
 import PickupCard from '../components/organisms/pickup/PickupCard'
-import { listarPickups, usePickupStore, type PedidoPickup } from '../store/pickup'
+import { listarPickups, type PedidoPickup } from '../api/pickupApi'
+import { usePickupStore } from '../store/pickup'
 
 /** Fecha local `YYYY-MM-DD`, comparable con el valor de un input date. */
 const diaLocal = (iso: string) => {

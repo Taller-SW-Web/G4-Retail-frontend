@@ -2,7 +2,7 @@ import { IconMapPin, IconPackageExport } from '@tabler/icons-react'
 import Badge from '../../atoms/Badge'
 import Button from '../../atoms/Button'
 import { formatFechaHora } from '../../../lib/format'
-import { totalPrendas, type PedidoPickup } from '../../../store/pickup'
+import { totalPrendas, type PedidoPickup } from '../../../api/pickupApi'
 
 interface PickupCardProps {
   pedido: PedidoPickup
