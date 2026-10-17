@@ -1,3 +1,4 @@
+﻿import { useEffect } from 'react'
 import { IconBolt, IconClipboardList, IconPackage, IconReceipt2, IconSearch } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import Badge from '../components/atoms/Badge'
@@ -9,6 +10,9 @@ import StatCard from '../components/molecules/StatCard'
 import UserSessionBadge from '../components/organisms/auth/UserSessionBadge'
 import CartPanel from '../components/organisms/carrito/CartPanel'
 import ProductCard from '../components/organisms/catalogo/ProductCard'
+import ShiftOpenModal from '../components/organisms/caja/ShiftOpenModal'
+import { turnoActual } from '../api/caja'
+import { useCajaStore } from '../store/caja'
 import { getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
 import type { CartItem, Product } from '../types'
@@ -42,8 +46,16 @@ export default function PosPage({
   categories,
   onCategoryChange,
 }: PosPageProps) {
+  const caja = useCajaStore((store) => store.caja)
+  const setCaja = useCajaStore((store) => store.setCaja)
+
+  useEffect(() => {
+    turnoActual().then(setCaja).catch(() => setCaja({ estado: 'CERRADA' }))
+  }, [setCaja])
+
   return (
     <main className="min-h-screen bg-[var(--color-surface-cloud)] px-4 py-6 lg:px-8">
+      {caja?.estado !== 'ABIERTA' && <ShiftOpenModal />}
       <header className="mx-auto max-w-7xl rounded-2xl bg-[var(--color-surface-ink)] px-6 py-4 text-[var(--color-text-inverse)] shadow-lg">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -53,7 +65,9 @@ export default function PosPage({
 
           <div className="flex flex-wrap items-center gap-3">
             <UserSessionBadge />
-            <Badge tone="info">Caja abierta</Badge>
+            <Badge tone={caja?.estado === 'ABIERTA' ? 'info' : 'warning'}>
+              {caja?.estado === 'ABIERTA' ? 'Caja abierta' : 'Caja cerrada'}
+            </Badge>
             <Badge tone="brand">Turno 08:00 - 12:00</Badge>
             <div className="flex items-center gap-2 border-l border-[var(--color-border-inverse)] pl-3 text-xs font-semibold">
               <Link to="/pickup" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
