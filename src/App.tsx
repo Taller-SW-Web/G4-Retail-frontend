@@ -1,17 +1,33 @@
 import { useEffect, useMemo, useState } from 'react'
-import LoginPage from './pages/LoginPage'
-import PosPage from './pages/PosPage'
+import { BrowserRouter } from 'react-router-dom'
+import AppRouter from './router/AppRouter'
 import { products } from './data/products'
-import { addProductToCart, getCartSubtotal, removeCartItem, setCartItemQuantity } from './lib/cart'
+import { getCartSubtotal } from './lib/cart'
 import { loadCart, saveCart } from './lib/cartStorage'
 import { filterProducts } from './lib/catalog'
-import type { CartItem, Product } from './types'
+import { useAuthStore } from './store/authStore'
+import { useCartStore } from './store/cart'
+import type { Product } from './types'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Si quedo un token vigente, se entra sin volver a pedir credenciales: un vendedor no deberia
+  // reloguearse solo por refrescar la pagina en medio de una atencion.
+  useEffect(() => {
+    void useAuthStore
+      .getState()
+      .restaurarSesion()
+      .then(() => setIsAuthenticated(useAuthStore.getState().autenticado()))
+
+    const inicial = loadCart(products, window.localStorage)
+    if (inicial.length > 0) {
+      useCartStore.getState().cargarCarrito(inicial)
+    }
+  }, [])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
-  const [cart, setCart] = useState<CartItem[]>(() => loadCart(products, window.localStorage))
+  const cart = useCartStore((s) => s.items)
 
   useEffect(() => {
     saveCart(cart, window.localStorage)
@@ -21,50 +37,33 @@ export default function App() {
     return filterProducts(products, search, category)
   }, [search, category])
 
-  const addToCart = (product: Product) => setCart((current) => addProductToCart(current, product))
-
-  const increaseQuantity = (productId: string) => {
-    setCart((current) => {
-      const item = current.find((currentItem) => currentItem.product.id === productId)
-      return item
-        ? setCartItemQuantity(current, productId, item.quantity + 1)
-        : current
-    })
-  }
-
-  const decreaseQuantity = (productId: string) => {
-    setCart((current) => {
-      const item = current.find((currentItem) => currentItem.product.id === productId)
-      return item
-        ? setCartItemQuantity(current, productId, item.quantity - 1)
-        : current
-    })
-  }
-
-  const removeFromCart = (productId: string) => {
-    setCart((current) => removeCartItem(current, productId))
-  }
+  const addToCart = (product: Product) => useCartStore.getState().agregarProducto(product)
+  const increaseQuantity = (productId: string) => useCartStore.getState().aumentarCantidad(productId)
+  const decreaseQuantity = (productId: string) => useCartStore.getState().disminuirCantidad(productId)
+  const removeFromCart = (productId: string) => useCartStore.getState().quitarProducto(productId)
 
   const subtotal = getCartSubtotal(cart)
-
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />
-  }
+  // Sin 'Todas': esa opción la pone CategoryFilter, y agregarla aquí la duplicaba en la barra.
+  const categories = useMemo(() => [...new Set(products.map((p) => p.category))], [])
 
   return (
-    <PosPage
-      products={filteredProducts}
-      cart={cart}
-      addToCart={addToCart}
-      increaseQuantity={increaseQuantity}
-      decreaseQuantity={decreaseQuantity}
-      removeFromCart={removeFromCart}
-      subtotal={subtotal}
-      search={search}
-      onSearchChange={setSearch}
-      category={category}
-      categories={[...new Set(products.map((product) => product.category))]}
-      onCategoryChange={setCategory}
-    />
+    <BrowserRouter>
+      <AppRouter
+        isAuthenticated={isAuthenticated}
+        onLogin={() => setIsAuthenticated(true)}
+        products={filteredProducts}
+        cart={cart}
+        addToCart={addToCart}
+        increaseQuantity={increaseQuantity}
+        decreaseQuantity={decreaseQuantity}
+        removeFromCart={removeFromCart}
+        subtotal={subtotal}
+        search={search}
+        onSearchChange={setSearch}
+        category={category}
+        categories={categories}
+        onCategoryChange={setCategory}
+      />
+    </BrowserRouter>
   )
 }

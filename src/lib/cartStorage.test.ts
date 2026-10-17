@@ -14,7 +14,7 @@ const product: Product = {
 function createStorage(initialValue: string | null = null) {
   let value = initialValue
   return {
-    getItem: () => value,
+    getItem: (_key?: string) => value,
     setItem: (_key: string, nextValue: string) => { value = nextValue },
   }
 }

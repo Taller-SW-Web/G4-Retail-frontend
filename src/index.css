@@ -21,6 +21,14 @@
   --color-text-disabled: #868e96;
   --color-border-default: #dee2e6;
   --color-border-inverse: #3a362c;
+  --color-success: #2f9e44;
+  --color-success-bg: #ebfbee;
+  --color-warning: #f08c00;
+  --color-warning-bg: #fff9db;
+  --color-error: #e03131;
+  --color-error-bg: #fff5f5;
+  --color-info: #1971c2;
+  --color-info-bg: #e7f5ff;
 }
 
 :root {
@@ -58,4 +66,27 @@ img {
 
 .font-heading {
   font-family: 'Oswald', sans-serif;
+}
+
+/* Ticket térmico de 80 mm (RF-22): al imprimir, solo sale el área marcada */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 72mm;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
 }
