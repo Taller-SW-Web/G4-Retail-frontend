@@ -6,6 +6,7 @@ import CategoryFilter from '../components/molecules/CategoryFilter'
 import EmptyState from '../components/molecules/EmptyState'
 import SearchBar from '../components/molecules/SearchBar'
 import StatCard from '../components/molecules/StatCard'
+import UserSessionBadge from '../components/organisms/auth/UserSessionBadge'
 import CartPanel from '../components/organisms/carrito/CartPanel'
 import ProductCard from '../components/organisms/catalogo/ProductCard'
 import { getCartItemCount } from '../lib/cart'
@@ -51,6 +52,7 @@ export default function PosPage({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <UserSessionBadge />
             <Badge tone="info">Caja abierta</Badge>
             <Badge tone="brand">Turno 08:00 - 12:00</Badge>
             <div className="flex items-center gap-2 border-l border-[var(--color-border-inverse)] pl-3 text-xs font-semibold">
