@@ -5,7 +5,7 @@ import Alert from '../../molecules/Alert'
 import Modal from '../../molecules/Modal'
 import { useAuthStore } from '../../../store/authStore'
 import { ApiError } from '../../../api/http'
-import { confirmarEntrega, type PedidoPickup } from '../../../api/pickupApi'
+import { confirmarEntrega, esCodigoRetiroValido, type PedidoPickup } from '../../../api/pickupApi'
 import { formatFechaHora } from '../../../lib/format'
 
 interface DeliveryModalProps {
@@ -38,6 +38,7 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
   const [receptor, setReceptor] = useState<Receptor>('TITULAR')
   const [dni, setDni] = useState(pedido.clienteDni)
   const [nombre, setNombre] = useState(pedido.clienteNombre)
+  const [codigoRetiro, setCodigoRetiro] = useState('')
   const [verificado, setVerificado] = useState(false)
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,7 +46,7 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
 
   const esTitular = receptor === 'TITULAR'
   const faltanDigitos = 8 - dni.length
-  const valido = esDniValido(dni) && nombre.trim().length > 2 && verificado
+  const valido = esDniValido(dni) && nombre.trim().length > 2 && esCodigoRetiroValido(codigoRetiro) && verificado
 
   function cambiarReceptor(nuevo: Receptor) {
     setReceptor(nuevo)
@@ -62,6 +63,7 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
         dniRecoge: dni,
         nombreRecoge: nombre.trim(),
         esTerceroAutorizado: !esTitular,
+        codigoRetiro,
       })
       onEntregado(pedido.pedidoId)
       setConstancia({ constanciaId: respuesta.constanciaId, fechaHora: respuesta.fechaHoraEntrega, dni, nombre: nombre.trim(), esTitular })
@@ -198,6 +200,18 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
             </label>
           </div>
         </div>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-semibold">Código de retiro</span>
+          <input
+            className={`${claseInput} font-mono uppercase tracking-widest`}
+            maxLength={6}
+            placeholder="Ej. A7K2Q9"
+            value={codigoRetiro}
+            onChange={(e) => setCodigoRetiro(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+          />
+          <span className="text-xs text-[var(--color-text-secondary)]">Código de 6 caracteres que el cliente recibió al comprar</span>
+        </label>
 
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" className="mt-1 size-4" checked={verificado} onChange={(e) => setVerificado(e.target.checked)} />

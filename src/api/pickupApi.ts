@@ -36,7 +36,12 @@ export interface EntregaPickup {
   dniRecoge: string
   nombreRecoge: string
   esTerceroAutorizado: boolean
+  /** Código de 6 caracteres que el cliente recibió al comprar (contrato §5.7). */
+  codigoRetiro: string
 }
+
+/** El código de retiro tiene 6 caracteres alfanuméricos en mayúsculas, por ejemplo `A7K2Q9`. */
+export const esCodigoRetiroValido = (codigo: string) => /^[A-Z0-9]{6}$/.test(codigo)
 
 export interface ConstanciaEntrega {
   constanciaId: string
@@ -63,6 +68,15 @@ export const totalPrendas = (articulos: ArticuloBulto[]) => articulos.reduce((su
 // ---------------------------------------------------------------------------
 
 const CLAVE_ENTREGADOS = 'retail.pickup.entregados'
+
+/** Códigos de retiro de los pedidos de ejemplo; en producción los valida Ventas y nunca llegan a la SPA. */
+const CODIGOS_RETIRO: Record<string, string> = {
+  'PED-2026-08910': 'A7K2Q9',
+  'PED-2026-08914': 'B3M8X1',
+  'PED-2026-08897': 'C5P4Z7',
+  'PED-2026-08871': 'D9R6W2',
+  'PED-2026-08932': 'E2T7Y5',
+}
 
 const haceHoras = (horas: number) => new Date(Date.now() - horas * 3_600_000).toISOString()
 
@@ -156,6 +170,12 @@ async function confirmarEntregaSimulada(pedidoId: string, entrega: EntregaPickup
     throw new ApiError(409, {
       code: 'PEDIDO_NO_LISTO_PARA_RECOJO',
       detail: 'El paquete no figura en estado listo para recojo',
+    })
+  }
+  if (CODIGOS_RETIRO[pedidoId] !== entrega.codigoRetiro) {
+    throw new ApiError(422, {
+      code: 'CODIGO_RETIRO_INVALIDO',
+      detail: 'El código de retiro no corresponde a este pedido',
     })
   }
   guardarEntregados([...entregados, pedidoId])
