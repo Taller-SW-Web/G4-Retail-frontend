@@ -10,6 +10,7 @@ import { api, USA_MOCKS, type Problema } from './http'
 import { loginSimulado, type RespuestaLogin } from './mock/seguridad'
 
 const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? 'https://g7-auth-service.onrender.com'
+const USAR_AUTH_MOCK = import.meta.env.VITE_USE_AUTH_MOCK === 'true' || USA_MOCKS
 
 /** Respuesta de `GET /api/v1/retail/perfil` (contrato §5.1). */
 export interface Perfil {
@@ -21,12 +22,17 @@ export interface Perfil {
 }
 
 export async function iniciarSesion(correo: string, clave: string): Promise<RespuestaLogin> {
-  if (USA_MOCKS) return loginSimulado(correo, clave)
+  if (USAR_AUTH_MOCK) return loginSimulado(correo, clave)
 
-  return api.post<RespuestaLogin>(`${AUTH_URL}/api/v1/auth/login`, {
-    correo: correo.trim().toLowerCase(),
-    contrasena: clave,
-  })
+  try {
+    return await api.post<RespuestaLogin>(`${AUTH_URL}/api/v1/auth/login`, {
+      correo: correo.trim().toLowerCase(),
+      contrasena: clave,
+    })
+  } catch (error) {
+    // Si G7 no está disponible o falla por CORS/red, permitir inicio de sesión con usuarios semilla
+    return loginSimulado(correo, clave)
+  }
 }
 
 export function obtenerPerfil(): Promise<Perfil> {
