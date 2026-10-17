@@ -12,6 +12,9 @@ import CartPanel from '../components/organisms/carrito/CartPanel'
 import ProductCard from '../components/organisms/catalogo/ProductCard'
 import ProductDetailModal from '../components/organisms/catalogo/ProductDetailModal'
 import ScannerSimulator from '../components/organisms/catalogo/ScannerSimulator'
+import ShiftOpenModal from '../components/organisms/caja/ShiftOpenModal'
+import { turnoActual } from '../api/caja'
+import { useCajaStore } from '../store/caja'
 import { getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
 import { resolveScan, sampleBarcodes } from '../lib/scanner'
@@ -46,9 +49,16 @@ export default function PosPage({
   categories,
   onCategoryChange,
 }: PosPageProps) {
+const caja = useCajaStore((store) => store.caja)
+  const setCaja = useCajaStore((store) => store.setCaja)
+
   const [detail, setDetail] = useState<{ product: Product; sku?: string } | null>(null)
   const [scannedCode, setScannedCode] = useState<string | null>(null)
   const samples = useMemo(() => sampleBarcodes(products), [products])
+
+  useEffect(() => {
+    turnoActual().then(setCaja).catch(() => setCaja({ estado: 'CERRADA' }))
+  }, [setCaja])
 
   // Escanear equivale a escribir el codigo en el buscador: la grilla se reduce al articulo leido.
   // La ficha se abre despues, cuando ese articulo ya llego en los resultados filtrados.
@@ -73,6 +83,7 @@ export default function PosPage({
 
   return (
     <main className="min-h-screen bg-[var(--color-surface-cloud)] px-4 py-6 lg:px-8">
+      {caja?.estado !== 'ABIERTA' && <ShiftOpenModal />}
       <header className="mx-auto max-w-7xl rounded-2xl bg-[var(--color-surface-ink)] px-6 py-4 text-[var(--color-text-inverse)] shadow-lg">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -82,7 +93,9 @@ export default function PosPage({
 
           <div className="flex flex-wrap items-center gap-3">
             <UserSessionBadge />
-            <Badge tone="info">Caja abierta</Badge>
+            <Badge tone={caja?.estado === 'ABIERTA' ? 'info' : 'warning'}>
+              {caja?.estado === 'ABIERTA' ? 'Caja abierta' : 'Caja cerrada'}
+            </Badge>
             <Badge tone="brand">Turno 08:00 - 12:00</Badge>
             <div className="flex items-center gap-2 border-l border-[var(--color-border-inverse)] pl-3 text-xs font-semibold">
               <Link to="/pickup" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
