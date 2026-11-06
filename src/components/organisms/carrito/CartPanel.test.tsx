@@ -20,6 +20,28 @@ afterEach(() => {
   localStorage.removeItem('inka-retail-held-carts')
 })
 
+it('permite editar la cantidad y conserva el límite de stock (RF-10)', () => {
+  useCartStore.getState().agregarProducto(producto)
+  render(<CartPanel />)
+
+  const cantidad = screen.getByRole('spinbutton', { name: `Cantidad de ${producto.name}` })
+  fireEvent.change(cantidad, { target: { value: '2' } })
+  expect(useCartStore.getState().items[0]?.quantity).toBe(2)
+
+  fireEvent.change(cantidad, { target: { value: '4' } })
+  fireEvent.blur(cantidad)
+  expect(cantidad).toHaveProperty('value', '2')
+  expect(useCartStore.getState().items[0]?.quantity).toBe(2)
+
+  fireEvent.change(cantidad, { target: { value: '' } })
+  fireEvent.blur(cantidad)
+  expect(cantidad).toHaveProperty('value', '2')
+
+  fireEvent.change(cantidad, { target: { value: '3' } })
+  expect(useCartStore.getState().items[0]?.quantity).toBe(3)
+  expect(screen.getByRole('button', { name: `Aumentar cantidad de ${producto.name}` })).toHaveProperty('disabled', true)
+})
+
 describe('Carrito en espera (RF-10 y RF-12)', () => {
   it('libera el mostrador y recupera el importe con descuento al reanudar', () => {
     useCartStore.getState().agregarProducto(producto)

@@ -43,6 +43,7 @@ interface CartStore {
   agregarProducto: (product: Product) => boolean
   aumentarCantidad: (productId: string) => void
   disminuirCantidad: (productId: string) => void
+  fijarCantidad: (productId: string, cantidad: number) => void
   quitarProducto: (productId: string) => void
   vaciarCarrito: () => void
   setCliente: (cliente: ClienteVenta | null) => void
@@ -82,6 +83,11 @@ export const useCartStore = create<CartStore>((set, get) => ({
     if (!item) return
     const updated = setCartItemQuantity(get().items, productId, item.quantity - 1)
     set({ items: updated })
+  },
+
+  fijarCantidad: (productId, cantidad) => {
+    if (!Number.isInteger(cantidad) || cantidad < 1) return
+    set({ items: setCartItemQuantity(get().items, productId, cantidad) })
   },
 
   quitarProducto: (productId) => {

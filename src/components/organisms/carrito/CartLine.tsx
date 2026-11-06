@@ -1,4 +1,5 @@
 import { IconMinus, IconPlus, IconTrash } from '@tabler/icons-react'
+import { useState } from 'react'
 import { formatCurrency } from '../../../lib/format'
 import { useCartStore } from '../../../store/cart'
 import type { CartItem } from '../../../types'
@@ -14,7 +15,9 @@ interface CartLineProps {
 export default function CartLine({ item }: CartLineProps) {
   const aumentarCantidad = useCartStore((s) => s.aumentarCantidad)
   const disminuirCantidad = useCartStore((s) => s.disminuirCantidad)
+  const fijarCantidad = useCartStore((s) => s.fijarCantidad)
   const quitarProducto = useCartStore((s) => s.quitarProducto)
+  const [borrador, setBorrador] = useState<string | null>(null)
 
   const enMaximoStock = item.quantity >= item.product.stock
 
@@ -56,9 +59,25 @@ export default function CartLine({ item }: CartLineProps) {
           >
             <IconMinus size={14} aria-hidden />
           </button>
-          <span className="min-w-7 text-center text-sm font-bold text-[var(--color-text-primary)]">
-            {item.quantity}
-          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={item.product.stock}
+            aria-label={`Cantidad de ${item.product.name}`}
+            value={borrador ?? item.quantity}
+            onChange={(evento) => {
+              const { value, valueAsNumber } = evento.currentTarget
+              if (Number.isInteger(valueAsNumber) && valueAsNumber >= 1 && valueAsNumber <= item.product.stock) {
+                fijarCantidad(item.product.id, valueAsNumber)
+                setBorrador(null)
+              } else {
+                setBorrador(value)
+              }
+            }}
+            onBlur={() => setBorrador(null)}
+            className="h-7 w-10 rounded-sm bg-transparent text-center text-sm font-bold text-[var(--color-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--color-action-primary)] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
           <button
             type="button"
             onClick={() => aumentarCantidad(item.product.id)}
