@@ -53,7 +53,7 @@ export default function PickupPage() {
   }, [pedidos, listos.length, setPendientes])
 
   const termino = busqueda.trim().toLowerCase()
-  const coincide = (p: PedidoPickup) => !termino || p.clienteDni.includes(termino) || p.pedidoId.toLowerCase().includes(termino)
+  const coincide = (p: PedidoPickup) => !termino || (p.clienteDni ?? '').includes(termino) || p.pedidoId.toLowerCase().includes(termino)
   const visibles = listos.filter((p) => coincide(p) && (!fecha || diaLocal(p.fechaArriboTienda) === fecha))
   const noDisponible = !!termino && pedidos?.some((p) => p.estado !== 'LISTO_PARA_RECOJO' && coincide(p))
 

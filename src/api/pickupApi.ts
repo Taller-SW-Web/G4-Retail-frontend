@@ -25,7 +25,8 @@ export interface ArticuloBulto {
 export interface PedidoPickup {
   pedidoId: string
   clienteNombre: string
-  clienteDni: string
+  /** Ventas (G5) puede enviarlo en null si el cliente no registró su DNI. */
+  clienteDni: string | null
   anaquelUbicacion: string
   fechaArriboTienda: string
   estado: EstadoPickup
@@ -177,7 +178,13 @@ async function confirmarEntregaSimulada(pedidoId: string, entrega: EntregaPickup
       detail: 'Un tercero solo puede recoger si presenta la carta poder del titular',
     })
   }
-  if (!entrega.esTerceroAutorizado && pedido.clienteDni && pedido.clienteDni !== entrega.dniRecoge) {
+  if (!entrega.esTerceroAutorizado && !pedido.clienteDni) {
+    throw new ApiError(422, {
+      code: 'DNI_TITULAR_NO_REGISTRADO',
+      detail: 'El pedido no tiene DNI del titular registrado; solo puede recogerlo un tercero con carta poder',
+    })
+  }
+  if (!entrega.esTerceroAutorizado && pedido.clienteDni !== entrega.dniRecoge) {
     throw new ApiError(422, {
       code: 'DNI_NO_COINCIDE_CON_TITULAR',
       detail: 'El DNI presentado no corresponde al titular del pedido',

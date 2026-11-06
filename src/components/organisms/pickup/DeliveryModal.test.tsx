@@ -24,9 +24,9 @@ const botonConfirmar = () => screen.getByRole('button', { name: /Confirmar y Reg
 const escribir = (etiqueta: RegExp, valor: string) => fireEvent.change(screen.getByLabelText(etiqueta), { target: { value: valor } })
 const marcarVerificacion = () => fireEvent.click(screen.getByLabelText(/verificado físicamente/))
 
-function montar() {
+function montar(datos: PedidoPickup = pedido) {
   const onEntregado = vi.fn()
-  render(<DeliveryModal pedido={pedido} onEntregado={onEntregado} onClose={vi.fn()} />)
+  render(<DeliveryModal pedido={datos} onEntregado={onEntregado} onClose={vi.fn()} />)
   return { onEntregado }
 }
 
@@ -60,6 +60,18 @@ describe('DeliveryModal (RF-19)', () => {
 
     expect(screen.getByRole('alert').textContent).toMatch(/No coincide con el DNI del titular/)
     expect(botonConfirmar()).toHaveProperty('disabled', true)
+  })
+
+  it('bloquea la entrega como titular si el pedido no tiene DNI registrado', () => {
+    montar({ ...pedido, clienteDni: null })
+    expect(screen.getByText(/no tiene DNI del titular registrado/)).toBeTruthy()
+
+    escribir(/DNI de quien recoge/, '45678912')
+    marcarVerificacion()
+    expect(botonConfirmar()).toHaveProperty('disabled', true)
+
+    fireEvent.click(screen.getByRole('radio', { name: /Tercero Autorizado/ }))
+    expect(screen.queryByText(/no tiene DNI del titular registrado/)).toBeNull()
   })
 
   it('retiro por tercero exige DNI de 8 dígitos y carta poder verificada', () => {

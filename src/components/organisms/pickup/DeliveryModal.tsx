@@ -48,10 +48,18 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
   const esTitular = receptor === 'TITULAR'
   const faltanDigitos = 8 - dni.length
   // Si recoge el titular, el DNI del documento físico debe ser el del pedido (contrato §5.7).
+  // Sin DNI registrado no hay contra qué comparar: solo puede recoger un tercero con carta poder.
+  const titularSinDni = esTitular && !pedido.clienteDni
   const dniNoCoincide = esTitular && esDniValido(dni) && !!pedido.clienteDni && dni !== pedido.clienteDni
   const codigoOk = codigoRetiro === '' || esCodigoRetiroValido(codigoRetiro)
   const valido =
-    esDniValido(dni) && !dniNoCoincide && nombre.trim().length > 2 && codigoOk && verificado && (esTitular || cartaPoder)
+    !titularSinDni &&
+    esDniValido(dni) &&
+    !dniNoCoincide &&
+    nombre.trim().length > 2 &&
+    codigoOk &&
+    verificado &&
+    (esTitular || cartaPoder)
 
   function cambiarReceptor(nuevo: Receptor) {
     setReceptor(nuevo)
@@ -106,7 +114,7 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
           {perfil && <p>Tienda: {perfil.tiendaId}</p>}
           <p>Fecha y hora: {formatFechaHora(constancia.fechaHora)}</p>
           <p>
-            Titular de la compra: {pedido.clienteNombre} (DNI {pedido.clienteDni})
+            Titular de la compra: {pedido.clienteNombre} ({pedido.clienteDni ? `DNI ${pedido.clienteDni}` : 'DNI no registrado'})
           </p>
           <p>
             Recibido por: {constancia.nombre} (DNI {constancia.dni}) — {constancia.esTitular ? 'Titular' : 'Tercero autorizado'}
@@ -186,6 +194,12 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
               </button>
             ))}
           </div>
+          {titularSinDni && (
+            <Alert tono="warning">
+              El pedido no tiene DNI del titular registrado, así que no se puede validar su identidad. Solo puede recogerlo un
+              tercero autorizado con carta poder.
+            </Alert>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-semibold">DNI de quien recoge</span>
