@@ -96,7 +96,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   aplicarCupon: (cupon) => set({ cupon: cupon.trim().toUpperCase() }),
 
   pausarVenta: (alias) => {
-    const { items, cliente, carritosEnEspera } = get()
+    const { items, cliente, cupon, carritosEnEspera } = get()
     if (items.length === 0 || !alias.trim()) return false
 
     const ahora = new Date()
@@ -107,6 +107,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       aliasTicket: alias.trim(),
       items: [...items],
       cliente: cliente ? { ...cliente } : null,
+      cupon,
       fechaHoraInicio: ahora.toISOString(),
       expiracion: expiracion.toISOString(),
     }
@@ -131,7 +132,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     set({
       items: seleccionado.items,
       cliente: seleccionado.cliente,
-      cupon: '',
+      cupon: seleccionado.cupon ?? '',
       carritosEnEspera: filtrados,
     })
     return true
