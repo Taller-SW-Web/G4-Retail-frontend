@@ -28,6 +28,8 @@ export interface VentaFinalizada {
   /** Correlativo de la boleta: ej. B001-00001 */
   serie: string
   correlativo: string
+  qr?: string
+  ticketRegalo?: { codigoCanje: string; fechaLimiteCambio: string }
 }
 
 interface ReceiptProps {
@@ -64,8 +66,8 @@ export default function Receipt({ venta, vista }: ReceiptProps) {
   const esCambio = vista === 'cambio'
 
   const qrValue = esCambio
-    ? `CAMBIO:${pedidoId}`
-    : [EMPRESA.ruc, serie, correlativo, igv.toFixed(2), total.toFixed(2), cliente.numeroDocumento].join('|')
+    ? venta.ticketRegalo?.codigoCanje ?? `CAMBIO:${pedidoId}`
+    : venta.qr ?? [EMPRESA.ruc, serie, correlativo, igv.toFixed(2), total.toFixed(2), cliente.numeroDocumento].join('|')
 
   return (
     <article

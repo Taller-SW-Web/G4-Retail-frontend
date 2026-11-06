@@ -65,7 +65,7 @@ export interface CambioRegistrado {
 }
 
 /** Serie de una letra y tres dígitos, guion y correlativo de 8 dígitos: `B001-00000045`. */
-const FORMATO_BOLETA = /^[BF]\d{3}-\d{8}$/
+const FORMATO_BOLETA = /^B001-[0-9]{8}$/
 
 /** Normaliza lo que entrega el lector o el teclado: sin espacios y en mayúsculas. */
 export function normalizarBoleta(texto: string): string {
