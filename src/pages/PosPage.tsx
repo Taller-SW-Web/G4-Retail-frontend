@@ -6,6 +6,7 @@ import Button from '../components/atoms/Button'
 import CategoryFilter from '../components/molecules/CategoryFilter'
 import ConfirmDialog from '../components/molecules/ConfirmDialog'
 import EmptyState from '../components/molecules/EmptyState'
+import OfflineBanner from '../components/molecules/OfflineBanner'
 import SearchBar from '../components/molecules/SearchBar'
 import StatCard from '../components/molecules/StatCard'
 import UserSessionBadge from '../components/organisms/auth/UserSessionBadge'
@@ -129,6 +130,8 @@ export default function PosPage({
           </div>
         </div>
       </header>
+
+      <OfflineBanner />
 
       <section className="mx-auto mt-6 max-w-7xl">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1.4fr)_420px] items-start">
