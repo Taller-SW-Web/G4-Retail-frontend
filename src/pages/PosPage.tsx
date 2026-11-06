@@ -125,6 +125,9 @@ export default function PosPage({
               <Link to="/caja/cierre" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
                 💵 Cierre Caja (F8)
               </Link>
+              <Link to="/cambios" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
+                🔄 Cambios (F9)
+              </Link>
             </div>
           </div>
         </div>

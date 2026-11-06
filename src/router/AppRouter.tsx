@@ -4,6 +4,7 @@ import PosPage from '../pages/PosPage'
 import PickupPage from '../pages/PickupPage'
 import CashClosePage from '../pages/CashClosePage'
 import ReceiptPage from '../pages/ReceiptPage'
+import ExchangePage from '../pages/ExchangePage'
 import type { CartItem, Product } from '../types'
 import ProtectedRoute from './ProtectedRoute'
 
@@ -62,6 +63,7 @@ export default function AppRouter(props: AppRouterProps) {
         <Route path="/pickup" element={<PickupPage />} />
         <Route path="/caja/cierre" element={<CashClosePage />} />
         <Route path="/pos/comprobante" element={<ReceiptPage />} />
+        <Route path="/cambios" element={<ExchangePage />} />
       </Route>
       <Route path="/" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
       <Route path="*" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
