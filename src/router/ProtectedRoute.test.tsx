@@ -89,3 +89,40 @@ describe('ProtectedRoute (seguridad en pantallas)', () => {
     expect(screen.getByText('Pantalla de login')).toBeTruthy()
   })
 })
+
+describe('ProtectedRoute con roles (RBAC)', () => {
+  function abrirSoloSupervisor() {
+    render(
+      <MemoryRouter initialEntries={['/anulaciones']}>
+        <Routes>
+          <Route path="/login" element={<p>Pantalla de login</p>} />
+          <Route element={<ProtectedRoute rolesPermitidos={['SUPERVISOR']} />}>
+            <Route path="/anulaciones" element={<p>Anulaciones</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('muestra acceso restringido a un vendedor, sin mandarlo al login', () => {
+    useAuthStore.setState({ token: tokenQueVenceEn(3600), perfil: PERFIL, restaurando: false })
+
+    abrirSoloSupervisor()
+
+    expect(screen.getByRole('alert').textContent).toContain('Acceso restringido')
+    expect(screen.queryByText('Anulaciones')).toBeNull()
+    expect(screen.queryByText('Pantalla de login')).toBeNull()
+  })
+
+  it('deja pasar al perfil permitido', () => {
+    useAuthStore.setState({
+      token: tokenQueVenceEn(3600),
+      perfil: { ...PERFIL, codigoVendedor: 'SUP-001', perfilTienda: 'SUPERVISOR' },
+      restaurando: false,
+    })
+
+    abrirSoloSupervisor()
+
+    expect(screen.getByText('Anulaciones')).toBeTruthy()
+  })
+})
