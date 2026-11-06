@@ -11,6 +11,12 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 /** Con `VITE_USE_MOCKS=false` la app llama a los servicios reales. Por defecto, simula. */
 export const USA_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false'
 
+/** El heartbeat es público y no depende del token de sesión. */
+export async function consultarSalud(signal: AbortSignal): Promise<boolean> {
+  const respuesta = await fetch(`${API_URL}/api/v1/retail/health`, { signal, cache: 'no-store' })
+  return respuesta.ok
+}
+
 /** Cuerpo de error que devuelve el backend: `application/problem+json` (RFC 7807). */
 export interface Problema {
   type?: string
