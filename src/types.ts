@@ -42,6 +42,7 @@ export interface CarritoEspera {
   aliasTicket: string
   items: CartItem[]
   cliente: ClienteVenta | null
+  cupon?: string
   fechaHoraInicio: string
   expiracion: string
 }
