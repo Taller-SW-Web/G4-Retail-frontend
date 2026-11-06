@@ -36,22 +36,28 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
   const perfil = useAuthStore((s) => s.perfil)
   const nombreVendedor = useAuthStore((s) => s.nombre)
   const [receptor, setReceptor] = useState<Receptor>('TITULAR')
-  const [dni, setDni] = useState(pedido.clienteDni)
+  const [dni, setDni] = useState('')
   const [nombre, setNombre] = useState(pedido.clienteNombre)
   const [codigoRetiro, setCodigoRetiro] = useState('')
   const [verificado, setVerificado] = useState(false)
+  const [cartaPoder, setCartaPoder] = useState(false)
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [constancia, setConstancia] = useState<Constancia | null>(null)
 
   const esTitular = receptor === 'TITULAR'
   const faltanDigitos = 8 - dni.length
-  const valido = esDniValido(dni) && nombre.trim().length > 2 && esCodigoRetiroValido(codigoRetiro) && verificado
+  // Si recoge el titular, el DNI del documento físico debe ser el del pedido (contrato §5.7).
+  const dniNoCoincide = esTitular && esDniValido(dni) && !!pedido.clienteDni && dni !== pedido.clienteDni
+  const codigoOk = codigoRetiro === '' || esCodigoRetiroValido(codigoRetiro)
+  const valido =
+    esDniValido(dni) && !dniNoCoincide && nombre.trim().length > 2 && codigoOk && verificado && (esTitular || cartaPoder)
 
   function cambiarReceptor(nuevo: Receptor) {
     setReceptor(nuevo)
-    setDni(nuevo === 'TITULAR' ? pedido.clienteDni : '')
+    setDni('')
     setNombre(nuevo === 'TITULAR' ? pedido.clienteNombre : '')
+    setCartaPoder(false)
   }
 
   async function confirmar() {
@@ -63,7 +69,8 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
         dniRecoge: dni,
         nombreRecoge: nombre.trim(),
         esTerceroAutorizado: !esTitular,
-        codigoRetiro,
+        ...(esTitular ? {} : { cartaPoderVerificada: cartaPoder }),
+        ...(codigoRetiro ? { codigoRetiro } : {}),
       })
       onEntregado(pedido.pedidoId)
       setConstancia({ constanciaId: respuesta.constanciaId, fechaHora: respuesta.fechaHoraEntrega, dni, nombre: nombre.trim(), esTitular })
@@ -186,12 +193,17 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
                 className={claseInput}
                 inputMode="numeric"
                 maxLength={8}
-                readOnly={esTitular}
+                placeholder={esTitular ? 'Digite el DNI del documento' : 'DNI del apoderado'}
                 value={dni}
                 onChange={(e) => setDni(soloDigitos(e.target.value, 8))}
               />
               {dni && faltanDigitos > 0 && (
                 <span className="text-xs text-[var(--color-text-secondary)]">Ingrese 8 dígitos (faltan {faltanDigitos})</span>
+              )}
+              {dniNoCoincide && (
+                <span role="alert" className="text-xs font-semibold text-red-700">
+                  No coincide con el DNI del titular. Si recoge otra persona, elija «Tercero Autorizado»
+                </span>
               )}
             </label>
             <label className="flex flex-col gap-1 text-sm">
@@ -199,10 +211,18 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
               <input className={claseInput} readOnly={esTitular} value={nombre} onChange={(e) => setNombre(e.target.value)} />
             </label>
           </div>
+          {!esTitular && (
+            <label className="flex items-start gap-2 rounded-lg border border-[var(--color-border-default)] p-3 text-sm">
+              <input type="checkbox" className="mt-1 size-4" checked={cartaPoder} onChange={(e) => setCartaPoder(e.target.checked)} />
+              <span>
+                Verifiqué la <strong>carta poder</strong> firmada por el titular ({pedido.clienteNombre}) y la copia de su DNI.
+              </span>
+            </label>
+          )}
         </div>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-semibold">Código de retiro</span>
+          <span className="font-semibold">Código de retiro (opcional)</span>
           <input
             className={`${claseInput} font-mono uppercase tracking-widest`}
             maxLength={6}
@@ -210,7 +230,7 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
             value={codigoRetiro}
             onChange={(e) => setCodigoRetiro(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
           />
-          <span className="text-xs text-[var(--color-text-secondary)]">Código de 6 caracteres que el cliente recibió al comprar</span>
+          <span className="text-xs text-[var(--color-text-secondary)]">Si el cliente lo trae, código de 6 caracteres de su compra</span>
         </label>
 
         <label className="flex items-start gap-2 text-sm">

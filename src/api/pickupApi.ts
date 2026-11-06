@@ -36,8 +36,10 @@ export interface EntregaPickup {
   dniRecoge: string
   nombreRecoge: string
   esTerceroAutorizado: boolean
-  /** Código de 6 caracteres que el cliente recibió al comprar (contrato §5.7). */
-  codigoRetiro: string
+  /** Obligatorio cuando recoge un tercero: el vendedor revisó la carta poder del titular. */
+  cartaPoderVerificada?: boolean
+  /** Código de 6 caracteres del cliente. Opcional: Ventas (G5) no lo valida (contrato §5.7). */
+  codigoRetiro?: string
 }
 
 /** El código de retiro tiene 6 caracteres alfanuméricos en mayúsculas, por ejemplo `A7K2Q9`. */
@@ -64,19 +66,10 @@ export function confirmarEntrega(pedidoId: string, entrega: EntregaPickup): Prom
 export const totalPrendas = (articulos: ArticuloBulto[]) => articulos.reduce((suma, a) => suma + a.cantidad, 0)
 
 // ---------------------------------------------------------------------------
-// Pedidos de ejemplo mientras no exista el módulo de Ventas (G5)
+// Pedidos de ejemplo para VITE_USE_MOCKS=true (mismas reglas que el backend)
 // ---------------------------------------------------------------------------
 
 const CLAVE_ENTREGADOS = 'retail.pickup.entregados'
-
-/** Códigos de retiro de los pedidos de ejemplo; en producción los valida Ventas y nunca llegan a la SPA. */
-const CODIGOS_RETIRO: Record<string, string> = {
-  'PED-2026-08910': 'A7K2Q9',
-  'PED-2026-08914': 'B3M8X1',
-  'PED-2026-08897': 'C5P4Z7',
-  'PED-2026-08871': 'D9R6W2',
-  'PED-2026-08932': 'E2T7Y5',
-}
 
 const haceHoras = (horas: number) => new Date(Date.now() - horas * 3_600_000).toISOString()
 
@@ -166,16 +159,28 @@ async function confirmarEntregaSimulada(pedidoId: string, entrega: EntregaPickup
   }
   const entregados = leerEntregados()
   const pedido = PEDIDOS_EJEMPLO.find((p) => p.pedidoId === pedidoId)
-  if (!pedido || pedido.estado !== 'LISTO_PARA_RECOJO' || entregados.includes(pedidoId)) {
+  if (!pedido || entregados.includes(pedidoId)) {
+    throw new ApiError(404, {
+      code: 'PEDIDO_NO_ENCONTRADO',
+      detail: `El pedido ${pedidoId} no figura en la bandeja de la tienda`,
+    })
+  }
+  if (pedido.estado !== 'LISTO_PARA_RECOJO') {
     throw new ApiError(409, {
       code: 'PEDIDO_NO_LISTO_PARA_RECOJO',
       detail: 'El paquete no figura en estado listo para recojo',
     })
   }
-  if (CODIGOS_RETIRO[pedidoId] !== entrega.codigoRetiro) {
+  if (entrega.esTerceroAutorizado && !entrega.cartaPoderVerificada) {
     throw new ApiError(422, {
-      code: 'CODIGO_RETIRO_INVALIDO',
-      detail: 'El código de retiro no corresponde a este pedido',
+      code: 'CARTA_PODER_REQUERIDA',
+      detail: 'Un tercero solo puede recoger si presenta la carta poder del titular',
+    })
+  }
+  if (!entrega.esTerceroAutorizado && pedido.clienteDni && pedido.clienteDni !== entrega.dniRecoge) {
+    throw new ApiError(422, {
+      code: 'DNI_NO_COINCIDE_CON_TITULAR',
+      detail: 'El DNI presentado no corresponde al titular del pedido',
     })
   }
   guardarEntregados([...entregados, pedidoId])

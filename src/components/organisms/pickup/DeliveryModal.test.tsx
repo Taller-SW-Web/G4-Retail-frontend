@@ -36,39 +36,50 @@ afterEach(() => {
 })
 
 describe('DeliveryModal (RF-19)', () => {
-  it('retiro por titular autocompleta DNI y nombre de la compra', () => {
+  it('retiro por titular autocompleta el nombre y pide digitar el DNI del documento', () => {
     montar()
-    expect(screen.getByLabelText(/DNI de quien recoge/)).toHaveProperty('value', '45678912')
+    expect(screen.getByLabelText(/DNI de quien recoge/)).toHaveProperty('value', '')
     expect(screen.getByLabelText(/Nombres completos/)).toHaveProperty('value', 'María González')
   })
 
-  it('mantiene inactivo el botón sin checkbox de verificación ni código de retiro', () => {
+  it('habilita el botón con DNI del titular y verificación, sin exigir código de retiro', () => {
     montar()
     expect(botonConfirmar()).toHaveProperty('disabled', true)
 
-    escribir(/Código de retiro/, 'A7K2Q9')
+    escribir(/DNI de quien recoge/, '45678912')
     expect(botonConfirmar()).toHaveProperty('disabled', true)
 
     marcarVerificacion()
     expect(botonConfirmar()).toHaveProperty('disabled', false)
   })
 
-  it('retiro por tercero limpia los campos y exige DNI de 8 dígitos', () => {
+  it('avisa y bloquea si el DNI no es el del titular', () => {
+    montar()
+    escribir(/DNI de quien recoge/, '11112222')
+    marcarVerificacion()
+
+    expect(screen.getByRole('alert').textContent).toMatch(/No coincide con el DNI del titular/)
+    expect(botonConfirmar()).toHaveProperty('disabled', true)
+  })
+
+  it('retiro por tercero exige DNI de 8 dígitos y carta poder verificada', () => {
     montar()
     fireEvent.click(screen.getByRole('radio', { name: /Tercero Autorizado/ }))
     expect(screen.getByLabelText(/DNI de quien recoge/)).toHaveProperty('value', '')
 
     escribir(/DNI de quien recoge/, '1234')
     escribir(/Nombres completos/, 'Pedro Ramírez')
-    escribir(/Código de retiro/, 'A7K2Q9')
     marcarVerificacion()
     expect(botonConfirmar()).toHaveProperty('disabled', true)
 
     escribir(/DNI de quien recoge/, '87654321')
+    expect(botonConfirmar()).toHaveProperty('disabled', true)
+
+    fireEvent.click(screen.getByLabelText(/carta poder/))
     expect(botonConfirmar()).toHaveProperty('disabled', false)
   })
 
-  it('confirma la entrega con el código de retiro y retira el pedido de la bandeja', async () => {
+  it('confirma la entrega del titular y retira el pedido de la bandeja', async () => {
     vi.mocked(confirmarEntrega).mockResolvedValue({
       constanciaId: 'CONST-PED-2026-08910',
       fechaHoraEntrega: '2026-10-17T15:30:00Z',
@@ -76,7 +87,7 @@ describe('DeliveryModal (RF-19)', () => {
     })
     const { onEntregado } = montar()
 
-    escribir(/Código de retiro/, 'a7k2q9')
+    escribir(/DNI de quien recoge/, '45678912')
     marcarVerificacion()
     fireEvent.click(botonConfirmar())
 
@@ -85,22 +96,48 @@ describe('DeliveryModal (RF-19)', () => {
       dniRecoge: '45678912',
       nombreRecoge: 'María González',
       esTerceroAutorizado: false,
-      codigoRetiro: 'A7K2Q9',
     })
     expect(screen.getByText(/CONST-PED-2026-08910/)).toBeTruthy()
   })
 
-  it('muestra el error del backend si el código de retiro no corresponde', async () => {
-    vi.mocked(confirmarEntrega).mockRejectedValue(
-      new ApiError(422, { code: 'CODIGO_RETIRO_INVALIDO', detail: 'El código de retiro no corresponde a este pedido' }),
-    )
-    const { onEntregado } = montar()
+  it('envía la carta poder y el código de retiro cuando recoge un tercero', async () => {
+    vi.mocked(confirmarEntrega).mockResolvedValue({
+      constanciaId: 'CONST-PED-2026-08910',
+      fechaHoraEntrega: '2026-10-17T15:30:00Z',
+      estado: 'ENTREGADO',
+    })
+    montar()
 
-    escribir(/Código de retiro/, 'ZZZZZZ')
+    fireEvent.click(screen.getByRole('radio', { name: /Tercero Autorizado/ }))
+    escribir(/DNI de quien recoge/, '87654321')
+    escribir(/Nombres completos/, 'Pedro Ramírez')
+    escribir(/Código de retiro/, 'a7k2q9')
+    fireEvent.click(screen.getByLabelText(/carta poder/))
     marcarVerificacion()
     fireEvent.click(botonConfirmar())
 
-    expect(await screen.findByText('El código de retiro no corresponde a este pedido')).toBeTruthy()
+    await waitFor(() =>
+      expect(confirmarEntrega).toHaveBeenCalledWith('PED-2026-08910', {
+        dniRecoge: '87654321',
+        nombreRecoge: 'Pedro Ramírez',
+        esTerceroAutorizado: true,
+        cartaPoderVerificada: true,
+        codigoRetiro: 'A7K2Q9',
+      }),
+    )
+  })
+
+  it('muestra el error del backend si Ventas no está disponible', async () => {
+    vi.mocked(confirmarEntrega).mockRejectedValue(
+      new ApiError(503, { code: 'VENTAS_NO_DISPONIBLE', detail: 'Ventas no respondió a tiempo. Reintente en unos segundos' }),
+    )
+    const { onEntregado } = montar()
+
+    escribir(/DNI de quien recoge/, '45678912')
+    marcarVerificacion()
+    fireEvent.click(botonConfirmar())
+
+    expect(await screen.findByText('Ventas no respondió a tiempo. Reintente en unos segundos')).toBeTruthy()
     expect(onEntregado).not.toHaveBeenCalled()
   })
 })
