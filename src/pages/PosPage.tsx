@@ -230,7 +230,7 @@ export default function PosPage({
         />
       ) : null}
 
-      {showPaymentModal && (
+      {showPaymentModal && caja?.estado === 'ABIERTA' && caja.turnoId && caja.terminalPos && (
         <PaymentModal
           total={totales.totalPagar}
           cliente={
@@ -257,7 +257,9 @@ export default function PosPage({
             precioUnitario: item.product.price,
           }))}
           vendedor={perfil?.codigoVendedor || 'VEN-001'}
-          tiendaId={perfil?.tiendaId || 'TIENDA-MIRAFLORES'}
+          turnoId={caja.turnoId}
+          terminalPos={caja.terminalPos}
+          cupon={cupon || undefined}
           onClose={() => setShowPaymentModal(false)}
           onVentaConfirmada={() => {
             setShowPaymentModal(false)

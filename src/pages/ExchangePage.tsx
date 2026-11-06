@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { IconArrowLeft, IconBarcode, IconExchange } from '@tabler/icons-react'
 import Badge from '../components/atoms/Badge'
 import Button from '../components/atoms/Button'
@@ -21,7 +21,8 @@ import { formatCurrency, formatFechaHora } from '../lib/format'
  * pueden cambiar. Al elegir una, el modal guía la inspección física y emite el vale.
  */
 export default function ExchangePage() {
-  const [boleta, setBoleta] = useState('')
+  const [parametros] = useSearchParams()
+  const [boleta, setBoleta] = useState(() => parametros.get('boleta') ?? '')
   const [validacion, setValidacion] = useState<ValidacionCambio | null>(null)
   const [consultando, setConsultando] = useState(false)
   const [error, setError] = useState<string | null>(null)
