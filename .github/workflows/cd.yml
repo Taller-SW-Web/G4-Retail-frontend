@@ -1,0 +1,28 @@
+# CD del frontend: cuando CI pasa en main, despliega a Vercel produccion.
+# Secrets requeridos en este repo:
+#   - VERCEL_TOKEN       (Settings > Tokens en vercel.com)
+#   - VERCEL_ORG_ID      (en .vercel/project.json o Settings del proyecto)
+#   - VERCEL_PROJECT_ID  (en .vercel/project.json o Settings del proyecto)
+name: CD frontend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # 1. Primero corre CI (tests + build)
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  # 2. Si CI pasa, despliega a Vercel
+  deploy:
+    needs: ci
+    uses: Taller-SW-Web/devsecops-templates/.github/workflows/cd-vercel.yml@main
+    with:
+      environment: production
+      node-version: "22"
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
