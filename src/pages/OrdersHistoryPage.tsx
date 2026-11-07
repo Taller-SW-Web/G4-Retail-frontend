@@ -28,7 +28,8 @@ const filtroDe = (criterio: Criterio, valor: string): FiltroPedidos =>
  * F6: Consulta y seguimiento histórico de pedidos (RF-16, RF-17). Ruta `/pedidos`.
  * Asignado a: KEVIN
  *
- * Por código exacto abre de inmediato el detalle; por DNI/RUC lista las compras del cliente.
+ * Por código exacto abre de inmediato el detalle; por DNI/RUC lista solo las ventas de la ejecución
+ * actual del servidor. El histórico por documento es RF-16-DOC (spec F6 §3.1), pendiente con G5.
  * Acepta `?codigo=` o `?documento=` para llegar con la búsqueda hecha (por ejemplo, desde la boleta).
  */
 export default function OrdersHistoryPage() {
@@ -143,7 +144,9 @@ export default function OrdersHistoryPage() {
                 maxLength={criterio === 'documento' ? 11 : 40}
                 autoFocus
                 aria-invalid={!!errorCampo}
-                aria-describedby={errorCampo ? 'busqueda-pedido-error' : undefined}
+                aria-describedby={
+                  errorCampo ? 'busqueda-pedido-error' : criterio === 'documento' ? 'busqueda-pedido-alcance' : undefined
+                }
                 className={[
                   'w-full rounded-xl border bg-white px-4 py-3 text-sm shadow-sm outline-none focus:ring-2',
                   criterio === 'codigo' ? 'font-mono' : '',
@@ -152,6 +155,12 @@ export default function OrdersHistoryPage() {
                     : 'border-[var(--color-border-default)] focus:border-[var(--color-accent-signal)] focus:ring-[var(--color-accent-signal-soft)]',
                 ].join(' ')}
               />
+              {criterio === 'documento' && !errorCampo && (
+                <p id="busqueda-pedido-alcance" className="text-sm text-[var(--color-text-secondary)]">
+                  Solo muestra las ventas hechas en el mostrador desde que se inició el sistema. El historial completo
+                  del cliente llegará en el siguiente hito.
+                </p>
+              )}
               {errorCampo && (
                 <p id="busqueda-pedido-error" className="text-sm text-[var(--color-error)]">
                   {errorCampo}
@@ -168,7 +177,7 @@ export default function OrdersHistoryPage() {
           <EmptyState
             icon={<IconSearch size={24} />}
             title="Consulta un pedido"
-            description="Ingresa el código del pedido (PED-2026-00412) o el DNI/RUC del cliente para ver sus compras y su seguimiento."
+            description="Ingresa el código del pedido (PED-2026-00412) para ver su seguimiento. Por DNI/RUC solo verás las ventas de la sesión actual."
           />
         )}
 
@@ -184,7 +193,11 @@ export default function OrdersHistoryPage() {
           <EmptyState
             icon={<IconZoomExclamation size={24} />}
             title="Sin resultados"
-            description="No se encontraron órdenes con los criterios especificados."
+            description={
+              ultimaBusqueda && 'documentoCliente' in ultimaBusqueda.filtro
+                ? 'Este cliente no tiene ventas en la sesión actual. Para pedidos anteriores, busca por código.'
+                : 'No se encontraron órdenes con los criterios especificados.'
+            }
           />
         )}
 

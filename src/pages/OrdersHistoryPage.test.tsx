@@ -65,6 +65,31 @@ describe('OrdersHistoryPage (RF-16)', () => {
     expect(buscarPedidos).not.toHaveBeenCalled()
   })
 
+  it('por DNI/RUC avisa que solo busca las ventas de la sesión actual', async () => {
+    vi.mocked(buscarPedidos).mockRejectedValue(new ApiError(404, { code: 'PEDIDO_NO_ENCONTRADO' }))
+    renderizar()
+
+    buscarPor(/Por DNI\/RUC/, '45678912')
+
+    expect(screen.getByText(/Solo muestra las ventas hechas en el mostrador/)).toBeTruthy()
+    expect(await screen.findByText(/no tiene ventas en la sesión actual/)).toBeTruthy()
+  })
+
+  it('un usuario sin perfil de tienda ve el aviso del 403', async () => {
+    vi.mocked(buscarPedidos).mockRejectedValue(
+      new ApiError(403, {
+        code: 'FORBIDDEN_USUARIO_SIN_TIENDA',
+        detail: 'El usuario autenticado no tiene un perfil activo en la tienda',
+      }),
+    )
+    renderizar()
+
+    buscarPor(/Por código de pedido/, 'PED-2026-00412')
+
+    expect(await screen.findByText('No se pudo consultar los pedidos')).toBeTruthy()
+    expect(obtenerPedido).not.toHaveBeenCalled()
+  })
+
   it('un código inexistente muestra el estado vacío sin romper la pantalla', async () => {
     vi.mocked(buscarPedidos).mockRejectedValue(new ApiError(404, { code: 'PEDIDO_NO_ENCONTRADO' }))
     renderizar()

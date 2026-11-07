@@ -144,6 +144,7 @@ const linea = (sku: string, nombre: string, cantidad: number, precio: number): L
 const JUAN = { nombre: 'Juan Pérez Torres', tipoDocumento: 'DNI', numeroDocumento: '72345678' }
 const MARIA = { nombre: 'María González', tipoDocumento: 'DNI', numeroDocumento: '45678912' }
 
+// Simulan ventas de la sesión actual: el backend solo busca por DNI/RUC lo vendido desde que arrancó.
 const PEDIDOS_EJEMPLO: DetallePedido[] = [
   ejemplo('PED-2026-00412', 'RETAIL', JUAN, 'TIENDA', 'TIENDA-MIRAFLORES', 2,
     [linea('ZAPVEL-41-AZU', 'Zapatillas Velocity X', 1, 249), linea('TOPPRO-M-NEG', 'Top de compresión Pro', 2, 89)],
