@@ -1,5 +1,12 @@
-import { describe, it, expect } from 'vitest'
-import { nombreDelToken, iniciarSesion } from './seguridad'
+import { afterEach, describe, it, expect, vi } from 'vitest'
+import { nombreDelToken } from './seguridad'
+
+/** Carga el módulo con el login simulado activo, sin depender del .env local. */
+async function seguridadSimulada() {
+  vi.stubEnv('VITE_USE_AUTH_MOCK', 'true')
+  vi.resetModules()
+  return import('./seguridad')
+}
 
 describe('Seguridad API (F1)', () => {
   describe('nombreDelToken', () => {
@@ -28,13 +35,17 @@ describe('Seguridad API (F1)', () => {
   })
 
   describe('iniciarSesion con mocks', () => {
+    afterEach(() => vi.unstubAllEnvs())
+
     it('autentica satisfactoriamente con usuario semilla en modo mock', async () => {
+      const { iniciarSesion } = await seguridadSimulada()
       const res = await iniciarSesion('vendedor1@inkaathletics.pe', 'Retail2026!')
       expect(res.accessToken).toBeDefined()
       expect(res.tokenType).toBe('Bearer')
     })
 
     it('rechaza credenciales incorrectas en modo mock', async () => {
+      const { iniciarSesion } = await seguridadSimulada()
       await expect(iniciarSesion('vendedor1@inkaathletics.pe', 'erronea')).rejects.toThrow()
     })
   })

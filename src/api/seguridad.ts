@@ -31,15 +31,12 @@ export interface Perfil {
 export async function iniciarSesion(correo: string, clave: string): Promise<RespuestaLogin> {
   if (USAR_AUTH_MOCK) return loginSimulado(correo, clave)
 
-  try {
-    return await api.post<RespuestaLogin>(`${AUTH_URL}/api/v1/auth/login`, {
-      correo: correo.trim().toLowerCase(),
-      contrasena: clave,
-    })
-  } catch (error) {
-    // Si G7 no está disponible o falla por CORS/red, permitir inicio de sesión con usuarios semilla
-    return loginSimulado(correo, clave)
-  }
+  // Con Seguridad real solo G7 autentica: si rechaza o no responde, el error llega a la pantalla
+  // de login. Los usuarios semilla existen únicamente en el modo simulado.
+  return api.post<RespuestaLogin>(`${AUTH_URL}/api/v1/auth/login`, {
+    correo: correo.trim().toLowerCase(),
+    contrasena: clave,
+  })
 }
 
 export function obtenerPerfil(): Promise<Perfil> {
