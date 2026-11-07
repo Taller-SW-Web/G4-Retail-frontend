@@ -1,0 +1,36 @@
+name: Production Deployment and Rollback
+run-name: CD | ${{ inputs.rollback && 'Rollback' || 'Deployment' }}
+'on':
+  push:
+    branches:
+    - main
+  workflow_dispatch:
+    inputs:
+      rollback:
+        description: Restore a previously deployed release (retail-operator team required)
+        type: boolean
+        default: false
+      release_tag:
+        description: Production tag to restore; required only for rollback
+        type: string
+        required: false
+permissions:
+  contents: write
+  actions: read
+jobs:
+  delivery:
+    name: Continuous Delivery
+    uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-deploy.yml@main
+    with:
+      component_name: g4-retail-frontend
+      technology: node
+      sonar_host_url: ${{ vars.SONAR_HOST_URL }}
+      rollback: ${{ inputs.rollback || false }}
+      release_tag: ${{ inputs.release_tag || '' }}
+      healthcheck_url: ${{ vars.PRODUCTION_HEALTHCHECK_URL }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      GH_TOKEN_G4: ${{ secrets.GH_TOKEN_G4 }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
