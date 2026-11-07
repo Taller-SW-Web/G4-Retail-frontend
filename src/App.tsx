@@ -7,6 +7,8 @@ import { loadCart, saveCart } from './lib/cartStorage'
 import { filterProducts } from './lib/catalog'
 import { useAuthStore } from './store/authStore'
 import { useCartStore } from './store/cart'
+import { ContingenciaProvider } from './context/ContingenciaContext'
+import { guardarCatalogoCache } from './lib/offlineStorage'
 import type { Product } from './types'
 
 export default function App() {
@@ -22,6 +24,9 @@ export default function App() {
     if (inicial.length > 0) {
       useCartStore.getState().cargarCarrito(inicial)
     }
+
+    // F10: inicializar la copia local del catálogo en IndexedDB para contingencia offline (CA-10-03)
+    void guardarCatalogoCache(products)
   }, [])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
@@ -46,22 +51,24 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <AppRouter
-        isAuthenticated={isAuthenticated}
-        onLogin={() => {}}
-        products={filteredProducts}
-        cart={cart}
-        addToCart={addToCart}
-        increaseQuantity={increaseQuantity}
-        decreaseQuantity={decreaseQuantity}
-        removeFromCart={removeFromCart}
-        subtotal={subtotal}
-        search={search}
-        onSearchChange={setSearch}
-        category={category}
-        categories={categories}
-        onCategoryChange={setCategory}
-      />
+      <ContingenciaProvider>
+        <AppRouter
+          isAuthenticated={isAuthenticated}
+          onLogin={() => {}}
+          products={filteredProducts}
+          cart={cart}
+          addToCart={addToCart}
+          increaseQuantity={increaseQuantity}
+          decreaseQuantity={decreaseQuantity}
+          removeFromCart={removeFromCart}
+          subtotal={subtotal}
+          search={search}
+          onSearchChange={setSearch}
+          category={category}
+          categories={categories}
+          onCategoryChange={setCategory}
+        />
+      </ContingenciaProvider>
     </BrowserRouter>
   )
 }

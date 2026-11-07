@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconCash, IconCreditCard, IconX } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
@@ -6,6 +6,11 @@ import { formatCurrency } from '../../../lib/format'
 import { ApiError } from '../../../api/http'
 import { registrarVenta, type MedioPago, type TipoComprobante, type VentaRequest } from '../../../api/ventas'
 import type { VentaFinalizada } from './Receipt'
+import { ContingenciaContext } from '../../../context/ContingenciaContext'
+import { useEstadoConexion } from '../../../hooks/useEstadoConexion'
+import { calcularHashContingencia } from '../../../lib/offlineHash'
+import { guardarVentaOffline } from '../../../lib/offlineStorage'
+import type { VentaOfflineRegistro } from '../../../types/contingencia'
 
 // RF-13 / RF-14: tipos de pago y comprobante
 export type { MedioPago, TipoComprobante } from '../../../api/ventas'
@@ -13,7 +18,7 @@ export type { MedioPago, TipoComprobante } from '../../../api/ventas'
 export interface ClienteResumen {
   id: string
   nombre: string
-  tipoDocumento: 'DNI' | 'RUC' | 'SIN_DOCUMENTO'
+  tipoDocumento: 'DNI' | 'RUC' | 'CE' | 'PASAPORTE' | 'SIN_DOCUMENTO'
   numeroDocumento: string
 }
 
@@ -42,7 +47,7 @@ export interface PaymentModalProps {
 const MONTO_BOLETA_REQUIERE_DNI = 700
 const BILLETES = [50, 100, 200]
 
-/** RF-13 / RF-14 / RF-15: cobro presencial, tipo de comprobante y creación de la orden. */
+/** RF-13 / RF-14 / RF-15 / RF-26 / RF-27: cobro presencial, creación de la orden y contingencia offline. */
 export default function PaymentModal({
   total,
   cliente,
@@ -55,6 +60,10 @@ export default function PaymentModal({
   onVentaConfirmada,
 }: PaymentModalProps) {
   const navigate = useNavigate()
+  const ctx = useContext(ContingenciaContext)
+  const enLineaDirecto = useEstadoConexion()
+  const enLinea = ctx ? ctx.enLinea : enLineaDirecto
+
   const [tipoComprobante, setTipoComprobante] = useState<TipoComprobante>('BOLETA')
   const [regalo, setRegalo] = useState(false)
   const [medio, setMedio] = useState<MedioPago>('EFECTIVO')
@@ -65,6 +74,14 @@ export default function PaymentModal({
   const [error, setError] = useState<string | null>(null)
   const pendiente = useRef<{ clave: string; peticion: VentaRequest } | null>(null)
   const enCurso = useRef(false)
+
+  // RF-26: en modo offline forzar siempre Efectivo
+  useEffect(() => {
+    if (!enLinea && medio === 'TARJETA_POS') {
+      setMedio('EFECTIVO')
+      setReferencia('')
+    }
+  }, [enLinea, medio])
 
   const montoRecibido = Number(recibido)
   const vuelto = montoRecibido - total
@@ -88,6 +105,89 @@ export default function PaymentModal({
     setError(null)
 
     try {
+      if (!enLinea) {
+        // --- FLUJO CONTINGENCIA OFFLINE (RF-27 / CA-10-02) ---
+        const ventaLocalUuid = crypto.randomUUID()
+        const seq = Number(sessionStorage.getItem('f10_contingencia_seq') || '0') + 1
+        sessionStorage.setItem('f10_contingencia_seq', String(seq))
+        const correlativoContingencia = `CONT-${String(seq).padStart(5, '0')}`
+        const fechaEmision = new Date().toISOString()
+
+        const hash = await calcularHashContingencia({
+          terminalPos,
+          turnoId,
+          ventaLocalUuid,
+          correlativoContingencia,
+          fechaHoraOffline: fechaEmision,
+          items: items.map((it) => ({
+            sku: it.sku,
+            cantidad: it.cantidad,
+            precioUnitario: it.precioUnitario,
+          })),
+          totalNeto: total,
+          efectivoRecibido: montoRecibido,
+          vuelto: vuelto >= 0 ? vuelto : 0,
+          clienteId: cliente.id || null,
+        })
+
+        const registroOffline: VentaOfflineRegistro = {
+          ventaLocalUuid,
+          terminalPos,
+          turnoId,
+          correlativoContingencia,
+          fechaHoraOffline: fechaEmision,
+          items: items.map((it) => ({
+            sku: it.sku,
+            cantidad: it.cantidad,
+            precioUnitario: it.precioUnitario,
+          })),
+          totalNeto: total,
+          efectivoRecibido: montoRecibido,
+          vuelto: vuelto >= 0 ? vuelto : 0,
+          clienteId: cliente.id || null,
+          hashIntegridad: hash,
+          estado: 'PENDIENTE',
+          itemsDetalle: items,
+          clienteDetalle: cliente,
+          vendedor,
+        }
+
+        if (ctx?.registrarVentaOffline) {
+          await ctx.registrarVentaOffline(registroOffline)
+        } else {
+          await guardarVentaOffline(registroOffline)
+        }
+
+        const igv = parseFloat((total * 0.18 / 1.18).toFixed(2))
+        const subtotal = parseFloat((total - igv).toFixed(2))
+        const ventaCompleta: VentaFinalizada = {
+          pedidoId: correlativoContingencia,
+          tipoComprobante,
+          medioPago: 'EFECTIVO' as MedioPago,
+          montoRecibido,
+          vuelto: vuelto >= 0 ? vuelto : 0,
+          subtotal,
+          igv,
+          total,
+          items,
+          cliente,
+          vendedor,
+          serie: 'B010',
+          correlativo: correlativoContingencia,
+          fechaEmision,
+          esContingencia: true,
+          correlativoContingencia,
+          hashIntegridad: hash,
+          ventaLocalUuid,
+        }
+
+        sessionStorage.setItem('f5_ultima_venta', JSON.stringify(ventaCompleta))
+        onVentaConfirmada(ventaCompleta)
+        navigate('/pos/comprobante')
+        return
+      }
+
+      // --- FLUJO ONLINE (RF-15): la venta y la boleta las confirma Retail ---
       pendiente.current ??= {
         clave: crypto.randomUUID(),
         peticion: {
@@ -129,13 +229,11 @@ export default function PaymentModal({
         cliente,
         vendedor,
         ticketRegalo: venta.ticketRegalo,
+        esContingencia: false,
       }
 
-      // Persistir en sessionStorage ANTES de navegar para que ReceiptPage pueda leerla
       sessionStorage.setItem('f5_ultima_venta', JSON.stringify(ventaCompleta))
-
       onVentaConfirmada(ventaCompleta)
-
       navigate('/pos/comprobante')
     } catch (causa) {
       const rechazo = causa instanceof ApiError && causa.status >= 400 && causa.status < 500
@@ -182,6 +280,13 @@ export default function PaymentModal({
           </span>
         </div>
 
+        {/* aviso modo contingencia */}
+        {!enLinea && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+            ⚠️ <strong>Modo Contingencia Activo:</strong> Sin conexión. Solo se admite cobro en efectivo. Se emitirá un ticket de contingencia y la venta se sincronizará automáticamente al volver la red.
+          </div>
+        )}
+
         {/* error de API */}
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -197,12 +302,15 @@ export default function PaymentModal({
               {(['BOLETA', 'FACTURA'] as TipoComprobante[]).map((t) => (
                 <button
                   key={t}
+                  disabled={!enLinea && t === 'FACTURA'}
                   onClick={() => setTipoComprobante(t)}
                   className={[
                     'flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors',
-                    tipoComprobante === t
-                      ? 'border-[var(--color-surface-ink)] bg-[var(--color-surface-ink)] text-[var(--color-text-inverse)]'
-                      : 'border-[var(--color-border-default)] bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-surface-cloud-subtle)]',
+                    !enLinea && t === 'FACTURA'
+                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-60'
+                      : tipoComprobante === t
+                        ? 'border-[var(--color-surface-ink)] bg-[var(--color-surface-ink)] text-[var(--color-text-inverse)]'
+                        : 'border-[var(--color-border-default)] bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-surface-cloud-subtle)]',
                   ].join(' ')}
                 >
                   {t === 'BOLETA' ? 'Boleta de Venta' : 'Factura Electrónica'}
@@ -244,12 +352,21 @@ export default function PaymentModal({
                 <IconCash size={18} aria-hidden /> Efectivo
               </button>
               <button
-                onClick={() => { setMedio('TARJETA_POS'); setRecibido(''); setReferencia('') }}
+                disabled={!enLinea}
+                title={!enLinea ? 'Inhabilitado en contingencia offline' : undefined}
+                onClick={() => {
+                  if (!enLinea) return
+                  setMedio('TARJETA_POS')
+                  setRecibido('')
+                  setReferencia('')
+                }}
                 className={[
                   'flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors',
-                  medio === 'TARJETA_POS'
-                    ? 'border-[var(--color-surface-ink)] bg-[var(--color-surface-ink)] text-[var(--color-text-inverse)]'
-                    : 'border-[var(--color-border-default)] bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-surface-cloud-subtle)]',
+                  !enLinea
+                    ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-60'
+                    : medio === 'TARJETA_POS'
+                      ? 'border-[var(--color-surface-ink)] bg-[var(--color-surface-ink)] text-[var(--color-text-inverse)]'
+                      : 'border-[var(--color-border-default)] bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-surface-cloud-subtle)]',
                 ].join(' ')}
               >
                 <IconCreditCard size={18} aria-hidden /> Tarjeta / POS
@@ -341,7 +458,7 @@ export default function PaymentModal({
             {procesando ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             ) : null}
-            Confirmar Pago y Finalizar
+            {!enLinea ? 'Emitir Ticket Contingencia' : 'Confirmar Pago y Finalizar'}
           </button>
         </div>
       </div>

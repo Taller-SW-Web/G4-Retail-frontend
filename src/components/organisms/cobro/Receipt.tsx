@@ -30,6 +30,11 @@ export interface VentaFinalizada {
   correlativo: string
   qr?: string
   ticketRegalo?: { codigoCanje: string; fechaLimiteCambio: string }
+  /** F10: datos de emisión en contingencia offline (RF-27 / CA-10-04) */
+  esContingencia?: boolean
+  correlativoContingencia?: string
+  hashIntegridad?: string
+  ventaLocalUuid?: string
 }
 
 interface ReceiptProps {
@@ -42,7 +47,7 @@ const Separador = () => (
   <hr className="border-t border-dashed border-[var(--color-border-default)]" />
 )
 
-/** RF-15: ticket térmico de 80 mm (boleta/factura) y ticket de cambio para regalos. */
+/** RF-15 / RF-27: ticket térmico de 80 mm (boleta/factura/contingencia) y ticket de cambio. */
 export default function Receipt({ venta, vista }: ReceiptProps) {
   const {
     pedidoId,
@@ -60,14 +65,19 @@ export default function Receipt({ venta, vista }: ReceiptProps) {
     fechaEmision,
     serie,
     correlativo,
+    esContingencia,
+    correlativoContingencia,
+    hashIntegridad,
   } = venta
 
-  const numero = `${serie}-${correlativo}`
+  const numero = esContingencia && correlativoContingencia ? correlativoContingencia : `${serie}-${correlativo}`
   const esCambio = vista === 'cambio'
 
   const qrValue = esCambio
     ? venta.ticketRegalo?.codigoCanje ?? `CAMBIO:${pedidoId}`
-    : venta.qr ?? [EMPRESA.ruc, serie, correlativo, igv.toFixed(2), total.toFixed(2), cliente.numeroDocumento].join('|')
+    : esContingencia
+      ? `CONTINGENCIA:${correlativoContingencia || numero}|${hashIntegridad?.slice(0, 8)}|${total.toFixed(2)}`
+      : venta.qr ?? [EMPRESA.ruc, serie, correlativo, igv.toFixed(2), total.toFixed(2), cliente.numeroDocumento].join('|')
 
   return (
     <article
@@ -92,11 +102,18 @@ export default function Receipt({ venta, vista }: ReceiptProps) {
         <p className="text-sm font-bold uppercase text-[var(--color-text-primary)]">
           {esCambio
             ? 'TICKET DE CAMBIO'
-            : tipoComprobante === 'FACTURA'
-              ? 'FACTURA ELECTRÓNICA'
-              : 'BOLETA DE VENTA ELECTRÓNICA'}
+            : esContingencia
+              ? 'COMPROBANTE EMITIDO EN CONTINGENCIA OFFLINE'
+              : tipoComprobante === 'FACTURA'
+                ? 'FACTURA ELECTRÓNICA'
+                : 'BOLETA DE VENTA ELECTRÓNICA'}
         </p>
         <p className="text-sm font-bold">{numero}</p>
+        {esContingencia && hashIntegridad && (
+          <p className="mt-1 font-mono text-[11px] font-semibold text-[var(--color-text-secondary)]">
+            HASH SEGURIDAD: {hashIntegridad.slice(0, 8)}...
+          </p>
+        )}
         <p className="text-[var(--color-text-secondary)]">
           Emisión:{' '}
           {new Date(fechaEmision).toLocaleString('es-PE', {
@@ -152,22 +169,17 @@ export default function Receipt({ venta, vista }: ReceiptProps) {
             <tr key={item.sku} className="align-top">
               <td className="pr-2 tabular-nums">{item.cantidad}</td>
               <td>
-                {item.nombre}
-                <br />
-                Talla {item.talla} · {item.color}
-                {esCambio && (
-                  <>
-                    <br />
-                    {item.sku}
-                  </>
-                )}
+                <p className="font-semibold">{item.nombre}</p>
+                <p className="text-[var(--color-text-secondary)]">
+                  {item.color} · Talla {item.talla} · SKU {item.sku}
+                </p>
               </td>
               {!esCambio && (
                 <>
-                  <td className="pl-2 text-right whitespace-nowrap tabular-nums">
+                  <td className="pl-2 text-right tabular-nums whitespace-nowrap">
                     {formatCurrency(item.precioUnitario)}
                   </td>
-                  <td className="pl-2 text-right whitespace-nowrap tabular-nums">
+                  <td className="pl-2 text-right font-semibold tabular-nums whitespace-nowrap">
                     {formatCurrency(item.precioUnitario * item.cantidad)}
                   </td>
                 </>
@@ -177,16 +189,11 @@ export default function Receipt({ venta, vista }: ReceiptProps) {
         </tbody>
       </table>
 
-      <Separador />
-
-      {/* totales o mensaje de cambio */}
-      {esCambio ? (
-        <p className="text-center font-semibold text-[var(--color-text-primary)]">
-          Válido para cambio en cualquier tienda física
-        </p>
-      ) : (
+      {/* totales (solo en comprobante normal) */}
+      {!esCambio && (
         <>
-          <dl className="flex flex-col gap-1 tabular-nums">
+          <Separador />
+          <dl className="flex flex-col gap-1">
             <div className="flex justify-between">
               <dt className="text-[var(--color-text-secondary)]">Op. Gravada</dt>
               <dd>{formatCurrency(subtotal)}</dd>
@@ -216,9 +223,15 @@ export default function Receipt({ venta, vista }: ReceiptProps) {
       <div className="flex flex-col items-center gap-1">
         <QRCodeSVG size={96} value={qrValue} />
         <p className="text-[var(--color-text-secondary)]">
-          {esCambio ? 'Código de cambio' : 'Verificación del comprobante'}
+          {esCambio ? 'Código de cambio' : esContingencia ? 'Ticket de contingencia' : 'Verificación del comprobante'}
         </p>
-        <p className="font-semibold">Pedido {pedidoId}</p>
+        {esContingencia ? (
+          <p className="text-center font-medium text-amber-800 text-[11px]">
+            Comprobante emitido en contingencia offline. Pendiente de sincronización fiscal.
+          </p>
+        ) : (
+          <p className="font-semibold">Pedido {pedidoId}</p>
+        )}
       </div>
     </article>
   )

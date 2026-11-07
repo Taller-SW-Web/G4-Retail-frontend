@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { IconArrowLeft, IconGift, IconPlus, IconPrinter, IconReceipt2 } from '@tabler/icons-react'
+import { IconArrowLeft, IconGift, IconHistory, IconPlus, IconPrinter, IconReceipt2 } from '@tabler/icons-react'
 import Button from '../components/atoms/Button'
 import Receipt from '../components/organisms/cobro/Receipt'
 import type { VentaFinalizada } from '../components/organisms/cobro/Receipt'
@@ -121,6 +121,13 @@ export default function ReceiptPage() {
             Solicitar cambio
           </Link>
         )}
+
+        <button
+          onClick={() => navigate(`/pedidos?codigo=${encodeURIComponent(venta.pedidoId)}`)}
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--color-border-default)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-cloud-subtle)] transition-colors"
+        >
+          <IconHistory size={18} aria-hidden /> Ver en Historial
+        </button>
 
         <button
           onClick={nuevaVenta}
