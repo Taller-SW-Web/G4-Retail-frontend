@@ -9,6 +9,7 @@ import SearchBar from '../components/molecules/SearchBar'
 import DeliveryModal from '../components/organisms/pickup/DeliveryModal'
 import PickupCard from '../components/organisms/pickup/PickupCard'
 import { listarPickups, type PedidoPickup } from '../api/pickupApi'
+import { ApiError } from '../api/http'
 import { usePickupStore } from '../store/pickup'
 
 /** Fecha local `YYYY-MM-DD`, comparable con el valor de un input date. */
@@ -24,16 +25,27 @@ const diaLocal = (iso: string) => {
 export default function PickupPage() {
   const setPendientes = usePickupStore((s) => s.setPendientes)
   const [pedidos, setPedidos] = useState<PedidoPickup[] | null>(null)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [fecha, setFecha] = useState('')
   const [enEntrega, setEnEntrega] = useState<PedidoPickup | null>(null)
 
+  const [intento, setIntento] = useState(0)
+
   useEffect(() => {
+    let vigente = true
+    setError(null)
     listarPickups()
-      .then(setPedidos)
-      .catch(() => setError(true))
-  }, [])
+      .then((lista) => {
+        if (vigente) setPedidos(lista)
+      })
+      .catch((err) => {
+        if (vigente) setError(err instanceof ApiError ? err.message : 'Revisa la conexión e intenta nuevamente.')
+      })
+    return () => {
+      vigente = false
+    }
+  }, [intento])
 
   const listos = pedidos?.filter((p) => p.estado === 'LISTO_PARA_RECOJO') ?? []
   useEffect(() => {
@@ -41,7 +53,7 @@ export default function PickupPage() {
   }, [pedidos, listos.length, setPendientes])
 
   const termino = busqueda.trim().toLowerCase()
-  const coincide = (p: PedidoPickup) => !termino || p.clienteDni.includes(termino) || p.pedidoId.toLowerCase().includes(termino)
+  const coincide = (p: PedidoPickup) => !termino || (p.clienteDni ?? '').includes(termino) || p.pedidoId.toLowerCase().includes(termino)
   const visibles = listos.filter((p) => coincide(p) && (!fecha || diaLocal(p.fechaArriboTienda) === fecha))
   const noDisponible = !!termino && pedidos?.some((p) => p.estado !== 'LISTO_PARA_RECOJO' && coincide(p))
 
@@ -78,9 +90,14 @@ export default function PickupPage() {
         )}
 
         {error ? (
-          <Alert tono="error" title="No se pudo cargar la bandeja de recojos">
-            Revisa la conexión e intenta nuevamente.
-          </Alert>
+          <div className="flex flex-col items-start gap-3">
+            <Alert tono="error" title="No se pudo cargar la bandeja de recojos">
+              {error}
+            </Alert>
+            <Button variant="secondary" onClick={() => setIntento((n) => n + 1)}>
+              Reintentar
+            </Button>
+          </div>
         ) : !pedidos ? (
           <p role="status" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">
             Cargando pedidos…

@@ -23,7 +23,9 @@ export default function PickupCard({ pedido, destacado, onProcesar }: PickupCard
       <div className="flex flex-col gap-1">
         <p className="font-mono text-xs text-[var(--color-text-secondary)]">{pedido.pedidoId}</p>
         <h3 className="text-xl font-bold">{pedido.clienteNombre}</h3>
-        <p className="text-sm text-[var(--color-text-secondary)]">DNI {pedido.clienteDni}</p>
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          {pedido.clienteDni ? `DNI ${pedido.clienteDni}` : 'DNI no registrado'}
+        </p>
       </div>
       <dl className="flex flex-col gap-1 text-sm">
         <div className="flex justify-between gap-2">

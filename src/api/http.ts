@@ -11,6 +11,12 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 /** Con `VITE_USE_MOCKS=false` la app llama a los servicios reales. Por defecto, simula. */
 export const USA_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false'
 
+/** El heartbeat es público y no depende del token de sesión. */
+export async function consultarSalud(signal: AbortSignal): Promise<boolean> {
+  const respuesta = await fetch(`${API_URL}/api/v1/retail/health`, { signal, cache: 'no-store' })
+  return respuesta.ok
+}
+
 /** Cuerpo de error que devuelve el backend: `application/problem+json` (RFC 7807). */
 export interface Problema {
   type?: string
@@ -62,12 +68,21 @@ export function registrarPerdidaDeSesion(accion: () => void): void {
   alPerderSesion = accion
 }
 
-async function peticion<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
+/** Cabeceras propias de una operación, como `Idempotency-Key` en los comandos que la exigen. */
+export type CabecerasExtra = Record<string, string>
+
+async function peticion<T>(
+  metodo: string,
+  ruta: string,
+  cuerpo?: unknown,
+  cabecerasExtra: CabecerasExtra = {},
+): Promise<T> {
   const esUrlAbsoluta = ruta.startsWith('http://') || ruta.startsWith('https://')
   const url = esUrlAbsoluta ? ruta : API_URL + ruta
 
   const cabeceras: Record<string, string> = {
     Accept: 'application/json',
+    ...cabecerasExtra,
   }
   if (!esUrlAbsoluta) {
     cabeceras['X-Correlation-Id'] = crypto.randomUUID()
@@ -114,7 +129,8 @@ async function leerProblema(respuesta: Response): Promise<Problema> {
 
 export const api = {
   get: <T>(ruta: string) => peticion<T>('GET', ruta),
-  post: <T>(ruta: string, cuerpo?: unknown) => peticion<T>('POST', ruta, cuerpo),
+  post: <T>(ruta: string, cuerpo?: unknown, cabeceras?: CabecerasExtra) =>
+    peticion<T>('POST', ruta, cuerpo, cabeceras),
   put: <T>(ruta: string, cuerpo?: unknown) => peticion<T>('PUT', ruta, cuerpo),
   delete: <T>(ruta: string) => peticion<T>('DELETE', ruta),
 }

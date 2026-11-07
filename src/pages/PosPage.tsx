@@ -6,6 +6,7 @@ import Button from '../components/atoms/Button'
 import CategoryFilter from '../components/molecules/CategoryFilter'
 import ConfirmDialog from '../components/molecules/ConfirmDialog'
 import EmptyState from '../components/molecules/EmptyState'
+import OfflineBanner from '../components/molecules/OfflineBanner'
 import SearchBar from '../components/molecules/SearchBar'
 import StatCard from '../components/molecules/StatCard'
 import UserSessionBadge from '../components/organisms/auth/UserSessionBadge'
@@ -74,6 +75,18 @@ export default function PosPage({
     turnoActual().then(setCaja).catch(() => setCaja({ estado: 'CERRADA' }))
   }, [setCaja])
 
+  // F6: la tecla F6 abre la consulta de pedidos sin dejar el teclado.
+  useEffect(() => {
+    const alPulsar = (evento: KeyboardEvent) => {
+      if (evento.key === 'F6') {
+        evento.preventDefault()
+        void navigate('/pedidos')
+      }
+    }
+    window.addEventListener('keydown', alPulsar)
+    return () => window.removeEventListener('keydown', alPulsar)
+  }, [navigate])
+
   // Escanear o hacer clic en un botón de muestra agrega la prenda DIRECTAMENTE al carrito sin abrir modal
   const scan = (code: string) => {
     const match = resolveScan(products, code)
@@ -122,13 +135,21 @@ export default function PosPage({
               <Link to="/pickup" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
                 📦 Pickup (F7)
               </Link>
+              <Link to="/pedidos" title="Atajo: tecla F6" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
+                🧾 Pedidos (F6)
+              </Link>
               <Link to="/caja/cierre" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
                 💵 Cierre Caja (F8)
+              </Link>
+              <Link to="/cambios" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
+                🔄 Cambios (F9)
               </Link>
             </div>
           </div>
         </div>
       </header>
+
+      <OfflineBanner />
 
       <section className="mx-auto mt-6 max-w-7xl">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1.4fr)_420px] items-start">
@@ -227,7 +248,7 @@ export default function PosPage({
         />
       ) : null}
 
-      {showPaymentModal && (
+      {showPaymentModal && caja?.estado === 'ABIERTA' && caja.turnoId && caja.terminalPos && (
         <PaymentModal
           total={totales.totalPagar}
           cliente={
@@ -235,7 +256,7 @@ export default function PosPage({
               ? {
                   id: cliente.id || cliente.numeroDocumento,
                   nombre: cliente.nombre,
-                  tipoDocumento: (cliente.tipoDocumento === 'RUC' ? 'RUC' : 'DNI') as 'DNI' | 'RUC',
+                  tipoDocumento: cliente.tipoDocumento,
                   numeroDocumento: cliente.numeroDocumento,
                 }
               : {
@@ -254,7 +275,9 @@ export default function PosPage({
             precioUnitario: item.product.price,
           }))}
           vendedor={perfil?.codigoVendedor || 'VEN-001'}
-          tiendaId={perfil?.tiendaId || 'TIENDA-MIRAFLORES'}
+          turnoId={caja.turnoId}
+          terminalPos={caja.terminalPos}
+          cupon={cupon || undefined}
           onClose={() => setShowPaymentModal(false)}
           onVentaConfirmada={() => {
             setShowPaymentModal(false)

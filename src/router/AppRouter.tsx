@@ -4,7 +4,10 @@ import PosPage from '../pages/PosPage'
 import PickupPage from '../pages/PickupPage'
 import CashClosePage from '../pages/CashClosePage'
 import ReceiptPage from '../pages/ReceiptPage'
+import ExchangePage from '../pages/ExchangePage'
+import OrdersHistoryPage from '../pages/OrdersHistoryPage'
 import type { CartItem, Product } from '../types'
+import ProtectedRoute from './ProtectedRoute'
 
 type AppRouterProps = {
   isAuthenticated: boolean
@@ -37,10 +40,11 @@ export default function AppRouter(props: AppRouterProps) {
         path="/login"
         element={<LoginPage onLogin={handleLogin} />}
       />
-      <Route
-        path="/pos"
-        element={
-          props.isAuthenticated ? (
+      {/* Todas las pantallas del mostrador exigen una sesión activa: un solo guardián las protege. */}
+      <Route element={<ProtectedRoute />}>
+        <Route
+          path="/pos"
+          element={
             <PosPage
               products={props.products}
               cart={props.cart}
@@ -55,23 +59,14 @@ export default function AppRouter(props: AppRouterProps) {
               categories={props.categories}
               onCategoryChange={props.onCategoryChange}
             />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
-      <Route
-        path="/pickup"
-        element={props.isAuthenticated ? <PickupPage /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/caja/cierre"
-        element={props.isAuthenticated ? <CashClosePage /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/pos/comprobante"
-        element={props.isAuthenticated ? <ReceiptPage /> : <Navigate to="/login" replace />}
-      />
+          }
+        />
+        <Route path="/pickup" element={<PickupPage />} />
+        <Route path="/caja/cierre" element={<CashClosePage />} />
+        <Route path="/pos/comprobante" element={<ReceiptPage />} />
+        <Route path="/cambios" element={<ExchangePage />} />
+        <Route path="/pedidos" element={<OrdersHistoryPage />} />
+      </Route>
       <Route path="/" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
       <Route path="*" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
     </Routes>

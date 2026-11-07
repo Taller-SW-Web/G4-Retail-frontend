@@ -43,6 +43,7 @@ interface CartStore {
   agregarProducto: (product: Product) => boolean
   aumentarCantidad: (productId: string) => void
   disminuirCantidad: (productId: string) => void
+  fijarCantidad: (productId: string, cantidad: number) => void
   quitarProducto: (productId: string) => void
   vaciarCarrito: () => void
   setCliente: (cliente: ClienteVenta | null) => void
@@ -84,6 +85,11 @@ export const useCartStore = create<CartStore>((set, get) => ({
     set({ items: updated })
   },
 
+  fijarCantidad: (productId, cantidad) => {
+    if (!Number.isInteger(cantidad) || cantidad < 1) return
+    set({ items: setCartItemQuantity(get().items, productId, cantidad) })
+  },
+
   quitarProducto: (productId) => {
     const updated = removeCartItem(get().items, productId)
     set({ items: updated })
@@ -96,7 +102,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   aplicarCupon: (cupon) => set({ cupon: cupon.trim().toUpperCase() }),
 
   pausarVenta: (alias) => {
-    const { items, cliente, carritosEnEspera } = get()
+    const { items, cliente, cupon, carritosEnEspera } = get()
     if (items.length === 0 || !alias.trim()) return false
 
     const ahora = new Date()
@@ -107,6 +113,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       aliasTicket: alias.trim(),
       items: [...items],
       cliente: cliente ? { ...cliente } : null,
+      cupon,
       fechaHoraInicio: ahora.toISOString(),
       expiracion: expiracion.toISOString(),
     }
@@ -131,7 +138,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     set({
       items: seleccionado.items,
       cliente: seleccionado.cliente,
-      cupon: '',
+      cupon: seleccionado.cupon ?? '',
       carritosEnEspera: filtrados,
     })
     return true
