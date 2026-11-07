@@ -17,13 +17,13 @@ export interface EvaluacionInspeccion {
   puedeAprobar: boolean
   /** Condiciones críticas que faltan, en lenguaje del vendedor. */
   faltantes: string[]
-  /** Si se aprueba por garantía, que es lo que flexibiliza la inspección. */
+  /** Falla de fábrica: es un caso de garantía, se deriva a Postventa y en mostrador no se emite vale. */
   porGarantia: boolean
 }
 
 export function evaluarInspeccion(motivo: MotivoCambio, inspeccion: InspeccionPrenda): EvaluacionInspeccion {
   if (motivo === 'FALLA_FABRICA') {
-    return { puedeAprobar: true, faltantes: [], porGarantia: true }
+    return { puedeAprobar: false, faltantes: [], porGarantia: true }
   }
 
   const faltantes: string[] = []

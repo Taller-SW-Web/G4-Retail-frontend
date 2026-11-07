@@ -181,9 +181,11 @@ export default function ExchangeModal({ boletaNumero, item, onCambioRegistrado, 
         </fieldset>
 
         {evaluacion.porGarantia && (
-          <Alert tono="info">Falla de fábrica: se aprueba por garantía y la prenda va a merma, no a la venta.</Alert>
+          <Alert tono="info" title="Caso de garantía">
+            Deriva la prenda a Postventa para revisión de garantía. En mostrador no se emite vale.
+          </Alert>
         )}
-        {!evaluacion.puedeAprobar && (
+        {!evaluacion.puedeAprobar && !evaluacion.porGarantia && (
           <Alert tono="warning" title="No se puede aprobar el cambio">
             Falta: {evaluacion.faltantes.join(' · ')}
           </Alert>

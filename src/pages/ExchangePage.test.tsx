@@ -94,6 +94,19 @@ describe('ExchangePage (F9)', () => {
     expect(screen.getByRole('button', { name: /Aprobar cambio/ }).hasAttribute('disabled')).toBe(false)
   })
 
+  it('RF-24: una falla de fábrica se deriva a Postventa y no permite emitir vale', async () => {
+    vi.mocked(validarBoleta).mockResolvedValue(EN_PLAZO)
+    abrir()
+    consultar('B001-00000045')
+    fireEvent.click(await screen.findByRole('button', { name: /Cambiar/ }))
+
+    fireEvent.click(screen.getByLabelText('Falla de fábrica'))
+
+    expect(screen.getByText(/Deriva la prenda a Postventa/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Aprobar cambio/ }).hasAttribute('disabled')).toBe(true)
+    expect(registrarCambio).not.toHaveBeenCalled()
+  })
+
   it('RF-25: al aprobar emite el vale térmico y descuenta la unidad cambiada', async () => {
     vi.mocked(validarBoleta).mockResolvedValue(EN_PLAZO)
     vi.mocked(registrarCambio).mockResolvedValue({

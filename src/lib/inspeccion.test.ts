@@ -24,15 +24,16 @@ describe('evaluarInspeccion (RF-24)', () => {
     expect(evaluarInspeccion('CAMBIO_TALLA', { ...COMPLETA, empaqueOriginal: false }).puedeAprobar).toBe(true)
   })
 
-  it('una falla de fábrica se aprueba por garantía aunque falten las etiquetas', () => {
+  it('una falla de fábrica no emite vale: se deriva a Postventa como garantía', () => {
     const resultado = evaluarInspeccion('FALLA_FABRICA', {
       etiquetasIntactas: false,
       sinSignosUso: false,
       empaqueOriginal: false,
     })
 
-    expect(resultado.puedeAprobar).toBe(true)
+    expect(resultado.puedeAprobar).toBe(false)
     expect(resultado.porGarantia).toBe(true)
+    expect(resultado.faltantes).toEqual([])
   })
 })
 
