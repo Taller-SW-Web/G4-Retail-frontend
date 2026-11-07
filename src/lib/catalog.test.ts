@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterProducts, searchProducts } from './catalog'
+import { filterProducts, lineasVendibles, productoDeVariante, searchProducts } from './catalog'
 import type { Product } from '../types'
 
 const catalog: Product[] = [
@@ -44,5 +44,37 @@ describe('búsqueda por etiqueta (RF-04)', () => {
 
   it('encuentra el artículo por el código de barras que dispara el lector', () => {
     expect(searchProducts(withVariants, '7751001000012')).toEqual(withVariants)
+  })
+})
+
+describe('productoDeVariante (RF-05: se vende la talla y el color elegidos)', () => {
+  const zapatilla: Product = {
+    id: 'PROD-101',
+    name: 'Zapatillas Velocity X',
+    category: 'Running',
+    price: 249,
+    stock: 7,
+    image: '',
+    variants: [
+      { sku: 'ZAPVEL-38-NEG', barcode: '', size: '38', color: 'Negro', stock: 4 },
+      { sku: 'ZAPVEL-40-AZU', barcode: '', size: '40', color: 'Azul', stock: 3 },
+    ],
+  }
+
+  it('crea una línea de carrito con el SKU, el stock y la talla de la variante elegida', () => {
+    const linea = productoDeVariante(zapatilla, zapatilla.variants![1])
+
+    expect(linea).toMatchObject({ id: 'ZAPVEL-40-AZU', name: 'Zapatillas Velocity X', price: 249, stock: 3 })
+    expect(linea.variants).toEqual([zapatilla.variants![1]])
+  })
+
+  it('dos tallas del mismo artículo son líneas distintas del carrito', () => {
+    const [a, b] = zapatilla.variants!.map((v) => productoDeVariante(zapatilla, v))
+    expect(a.id).not.toBe(b.id)
+  })
+
+  it('las líneas guardadas del carrito se pueden recuperar con el catálogo expandido', () => {
+    const ids = lineasVendibles([zapatilla]).map((p) => p.id)
+    expect(ids).toEqual(['PROD-101', 'ZAPVEL-38-NEG', 'ZAPVEL-40-AZU'])
   })
 })

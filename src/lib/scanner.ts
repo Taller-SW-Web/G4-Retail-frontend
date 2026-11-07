@@ -42,7 +42,7 @@ export function sampleBarcodes(products: Product[], limit = 4): Array<{ code: st
     .filter((product) => product.variants?.length)
     .slice(0, limit)
     .map((product) => ({
-      code: product.variants![0].barcode,
+      code: product.variants![0].barcode || product.variants![0].sku,
       label: `${product.name} · ${product.variants![0].size}`,
     }))
 }

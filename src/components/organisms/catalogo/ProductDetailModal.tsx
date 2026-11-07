@@ -4,6 +4,7 @@ import Button from '../../atoms/Button'
 import StockBadge from '../../molecules/StockBadge'
 import { getStockStatus } from '../../../lib/inventory'
 import { formatCurrency } from '../../../lib/format'
+import { productoDeVariante } from '../../../lib/catalog'
 import type { Product, Variant } from '../../../types'
 
 type ProductDetailModalProps = {
@@ -183,7 +184,7 @@ export default function ProductDetailModal({
               className="w-full gap-2"
               disabled={!canSell}
               onClick={() => {
-                onAdd(product)
+                onAdd(selected ? productoDeVariante(product, selected) : product)
                 onClose()
               }}
             >
