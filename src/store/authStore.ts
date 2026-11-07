@@ -8,6 +8,7 @@
 import { create } from 'zustand'
 import { ApiError, definirToken, registrarPerdidaDeSesion } from '../api/http'
 import { iniciarSesion, nombreDelToken, obtenerPerfil, type Perfil } from '../api/seguridad'
+import { tokenVigente } from '../lib/token'
 
 const CLAVE_TOKEN = 'retail.token'
 
@@ -17,6 +18,13 @@ interface EstadoAuth {
   nombre: string | null
   cargando: boolean
   error: string | null
+  /**
+   * True mientras se valida contra el backend un token guardado de una sesión anterior. Las rutas
+   * protegidas esperan en vez de redirigir: si no, recargar /pickup llevaría al login y de ahí al
+   * mostrador, aunque la sesión fuera válida.
+   */
+  restaurando: boolean
+  /** Hay token, hay perfil y el token no venció. */
   autenticado: () => boolean
   entrar: (correo: string, clave: string) => Promise<boolean>
   restaurarSesion: () => Promise<void>
@@ -47,8 +55,12 @@ export const useAuthStore = create<EstadoAuth>((set, get) => ({
   nombre: null,
   cargando: false,
   error: null,
+  restaurando: leerTokenGuardado() !== null,
 
-  autenticado: () => get().token !== null && get().perfil !== null,
+  autenticado: () => {
+    const { token, perfil } = get()
+    return token !== null && perfil !== null && tokenVigente(token)
+  },
 
   async entrar(correo, clave) {
     set({ cargando: true, error: null })
@@ -76,15 +88,23 @@ export const useAuthStore = create<EstadoAuth>((set, get) => ({
 
   async restaurarSesion() {
     const token = leerTokenGuardado()
-    if (!token) return
+    if (!token || !tokenVigente(token)) {
+      // Nada que restaurar, o un token que ya venció: no vale la pena preguntarle al backend.
+      if (token) get().salir()
+      set({ restaurando: false })
+      return
+    }
 
+    set({ restaurando: true })
     definirToken(token)
     try {
       const perfil = await obtenerPerfil()
       set({ token, perfil, nombre: nombreDelToken(token) })
     } catch {
-      // Token vencido o revocado: se limpia en silencio y la app pide login otra vez.
+      // Token revocado o backend que lo rechaza: se limpia en silencio y la app pide login otra vez.
       get().salir()
+    } finally {
+      set({ restaurando: false })
     }
   },
 

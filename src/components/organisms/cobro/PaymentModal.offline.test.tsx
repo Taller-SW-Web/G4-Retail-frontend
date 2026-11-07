@@ -63,7 +63,8 @@ describe('PaymentModal en modo Contingencia Offline (RF-26, RF-27)', () => {
             cliente={clienteMock}
             items={itemsMock}
             vendedor="VEN-001"
-            tiendaId="TIENDA-01"
+            terminalPos="POS-01"
+            turnoId="00000000-0000-0000-0000-000000000000"
             onClose={vi.fn()}
             onVentaConfirmada={vi.fn()}
           />
@@ -111,7 +112,8 @@ describe('PaymentModal en modo Contingencia Offline (RF-26, RF-27)', () => {
             cliente={clienteMock}
             items={itemsMock}
             vendedor="VEN-001"
-            tiendaId="TIENDA-01"
+            terminalPos="POS-01"
+            turnoId="00000000-0000-0000-0000-000000000000"
             onClose={vi.fn()}
             onVentaConfirmada={onVentaConfirmada}
           />

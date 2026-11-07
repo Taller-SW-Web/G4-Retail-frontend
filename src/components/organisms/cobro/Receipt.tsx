@@ -28,6 +28,8 @@ export interface VentaFinalizada {
   /** Correlativo de la boleta: ej. B001-00001 */
   serie: string
   correlativo: string
+  qr?: string
+  ticketRegalo?: { codigoCanje: string; fechaLimiteCambio: string }
   /** F10: datos de emisión en contingencia offline (RF-27 / CA-10-04) */
   esContingencia?: boolean
   correlativoContingencia?: string
@@ -72,10 +74,10 @@ export default function Receipt({ venta, vista }: ReceiptProps) {
   const esCambio = vista === 'cambio'
 
   const qrValue = esCambio
-    ? `CAMBIO:${pedidoId}`
+    ? venta.ticketRegalo?.codigoCanje ?? `CAMBIO:${pedidoId}`
     : esContingencia
       ? `CONTINGENCIA:${correlativoContingencia || numero}|${hashIntegridad?.slice(0, 8)}|${total.toFixed(2)}`
-      : [EMPRESA.ruc, serie, correlativo, igv.toFixed(2), total.toFixed(2), cliente.numeroDocumento].join('|')
+      : venta.qr ?? [EMPRESA.ruc, serie, correlativo, igv.toFixed(2), total.toFixed(2), cliente.numeroDocumento].join('|')
 
   return (
     <article

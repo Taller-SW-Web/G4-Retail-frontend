@@ -141,6 +141,9 @@ export default function PosPage({
               <Link to="/caja/cierre" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
                 💵 Cierre Caja (F8)
               </Link>
+              <Link to="/cambios" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
+                🔄 Cambios (F9)
+              </Link>
             </div>
           </div>
         </div>
@@ -245,7 +248,7 @@ export default function PosPage({
         />
       ) : null}
 
-      {showPaymentModal && (
+      {showPaymentModal && caja?.estado === 'ABIERTA' && caja.turnoId && caja.terminalPos && (
         <PaymentModal
           total={totales.totalPagar}
           cliente={
@@ -272,7 +275,9 @@ export default function PosPage({
             precioUnitario: item.product.price,
           }))}
           vendedor={perfil?.codigoVendedor || 'VEN-001'}
-          tiendaId={perfil?.tiendaId || 'TIENDA-MIRAFLORES'}
+          turnoId={caja.turnoId}
+          terminalPos={caja.terminalPos}
+          cupon={cupon || undefined}
           onClose={() => setShowPaymentModal(false)}
           onVentaConfirmada={() => {
             setShowPaymentModal(false)

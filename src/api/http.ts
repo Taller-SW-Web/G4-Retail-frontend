@@ -68,12 +68,21 @@ export function registrarPerdidaDeSesion(accion: () => void): void {
   alPerderSesion = accion
 }
 
-async function peticion<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
+/** Cabeceras propias de una operación, como `Idempotency-Key` en los comandos que la exigen. */
+export type CabecerasExtra = Record<string, string>
+
+async function peticion<T>(
+  metodo: string,
+  ruta: string,
+  cuerpo?: unknown,
+  cabecerasExtra: CabecerasExtra = {},
+): Promise<T> {
   const esUrlAbsoluta = ruta.startsWith('http://') || ruta.startsWith('https://')
   const url = esUrlAbsoluta ? ruta : API_URL + ruta
 
   const cabeceras: Record<string, string> = {
     Accept: 'application/json',
+    ...cabecerasExtra,
   }
   if (!esUrlAbsoluta) {
     cabeceras['X-Correlation-Id'] = crypto.randomUUID()
@@ -120,7 +129,8 @@ async function leerProblema(respuesta: Response): Promise<Problema> {
 
 export const api = {
   get: <T>(ruta: string) => peticion<T>('GET', ruta),
-  post: <T>(ruta: string, cuerpo?: unknown) => peticion<T>('POST', ruta, cuerpo),
+  post: <T>(ruta: string, cuerpo?: unknown, cabeceras?: CabecerasExtra) =>
+    peticion<T>('POST', ruta, cuerpo, cabeceras),
   put: <T>(ruta: string, cuerpo?: unknown) => peticion<T>('PUT', ruta, cuerpo),
   delete: <T>(ruta: string) => peticion<T>('DELETE', ruta),
 }
