@@ -253,7 +253,7 @@ export default function PosPage({
               ? {
                   id: cliente.id || cliente.numeroDocumento,
                   nombre: cliente.nombre,
-                  tipoDocumento: (cliente.tipoDocumento === 'RUC' ? 'RUC' : 'DNI') as 'DNI' | 'RUC',
+                  tipoDocumento: cliente.tipoDocumento,
                   numeroDocumento: cliente.numeroDocumento,
                 }
               : {

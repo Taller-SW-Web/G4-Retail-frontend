@@ -4,10 +4,19 @@ import Button from '../../atoms/Button'
 import Alert from '../../molecules/Alert'
 import QuickCustomerModal from './QuickCustomerModal'
 import { ApiError } from '../../../api/http'
-import { aClienteVenta, buscarCliente, type ClienteVenta, type TipoDocumento } from './clientesApi'
-
-/** Longitud exacta de cada documento: el DNI tiene 8 dígitos y el RUC 11 (RF-07, RF-09). */
-const LONGITUD: Record<TipoDocumento, number> = { DNI: 8, RUC: 11 }
+import {
+  REGLAS_DOCUMENTO,
+  TIPOS_DOCUMENTO,
+  enmascararDocumento,
+  evaluarDocumento,
+} from '../../../lib/documento'
+import {
+  aClienteVenta,
+  buscarCliente,
+  type ClienteVenta,
+  type DocumentoPersona,
+  type TipoDocumento,
+} from './clientesApi'
 
 const CLASE_CAMPO =
   'rounded-lg border bg-white px-4 py-2 font-normal focus:border-transparent focus:ring-2 focus:ring-accent-signal focus:outline-none'
@@ -20,15 +29,22 @@ interface CustomerSectionProps {
 }
 
 /**
- * Identificación del cliente en mostrador (RF-07 y RF-09).
+ * Identificación del cliente en mostrador (RF-07, RF-08 y RF-09).
  *
  * Es una sección **controlada**: no guarda el cliente en ningún store propio, solo avisa al carrito
  * quién quedó identificado. Así el mismo componente sirve tanto si el estado vive en la página como
  * si mañana se muda al store de la venta.
  *
- * El DNI se busca en el padrón y el RUC no: el RUC se captura directo con su razón social porque
- * viaja tal cual en la orden para la factura. Si la consulta del DNI responde `404`, el cliente no
- * existe y se abre el alta rápida sin perder lo que ya está en el carrito (RF-08).
+ * Validación estricta (RF-09), con las mismas reglas que el backend (`lib/documento.ts`):
+ * - DNI `^\d{8}$`, RUC `^(10|20)\d{9}$`, CE de 9 a 12 y pasaporte de 6 a 16 caracteres alfanuméricos.
+ * - La máscara impide teclear lo que el tipo no admite y corta en la longitud máxima.
+ * - Mientras se escribe se avisa cuántos caracteres faltan; el borde se pone verde al completar y
+ *   rojo ante un error (por ejemplo, un RUC que no empieza con 10 o 20, que se marca de inmediato).
+ * - El botón de búsqueda queda deshabilitado mientras el documento no sea válido.
+ *
+ * DNI, CE y pasaporte se buscan en el padrón; si responde `404` se abre el alta rápida sin perder el
+ * carrito (RF-08). El RUC no se consulta: se captura con su razón social porque viaja tal cual en la
+ * orden para la factura.
  */
 export default function CustomerSection({ cliente, onAsociarCliente }: CustomerSectionProps) {
   const [tipo, setTipo] = useState<TipoDocumento>('DNI')
@@ -37,29 +53,33 @@ export default function CustomerSection({ cliente, onAsociarCliente }: CustomerS
   const [documentoTocado, setDocumentoTocado] = useState(false)
   const [buscando, setBuscando] = useState(false)
   const [aviso, setAviso] = useState<{ tono: 'warning' | 'error'; texto: string } | null>(null)
-  const [altaDocumento, setAltaDocumento] = useState<string | null>(null)
+  const [alta, setAlta] = useState<{ tipo: DocumentoPersona; numero: string } | null>(null)
 
-  const longitud = LONGITUD[tipo]
-  const documentoValido = documento.length === longitud
-  const errorDocumento = documentoTocado && documento !== '' && !documentoValido
-  const listo = documentoValido && (tipo === 'DNI' || razonSocial.trim().length > 2)
+  const regla = REGLAS_DOCUMENTO[tipo]
+  const estado = evaluarDocumento(tipo, documento)
+  const documentoValido = estado.valido
+  // El faltante de caracteres es un aviso neutro mientras se escribe; se vuelve error al salir del
+  // campo. Un error de forma (prefijo de RUC) se marca en rojo de inmediato.
+  const errorDocumento =
+    documento !== '' && !estado.valido && (!estado.incompleto || documentoTocado)
+  const listo = documentoValido && (tipo !== 'RUC' || razonSocial.trim().length > 2)
 
-  function cambiarTipo(nuevo: TipoDocumento) {
-    setTipo(nuevo)
+  function limpiar() {
     setDocumento('')
     setRazonSocial('')
     setDocumentoTocado(false)
     setAviso(null)
-    setAltaDocumento(null)
+    setAlta(null)
+  }
+
+  function cambiarTipo(nuevo: TipoDocumento) {
+    setTipo(nuevo)
+    limpiar()
   }
 
   function cambiarCliente() {
     onAsociarCliente(null)
-    setDocumento('')
-    setRazonSocial('')
-    setDocumentoTocado(false)
-    setAviso(null)
-    setAltaDocumento(null)
+    limpiar()
   }
 
   async function enviar(evento: FormEvent) {
@@ -75,14 +95,14 @@ export default function CustomerSection({ cliente, onAsociarCliente }: CustomerS
     setBuscando(true)
     setAviso(null)
     try {
-      onAsociarCliente(aClienteVenta(await buscarCliente(documento)))
+      onAsociarCliente(aClienteVenta(await buscarCliente(tipo, documento)))
     } catch (fallo) {
       if (fallo instanceof ApiError && fallo.status === 404) {
         setAviso({
           tono: 'warning',
-          texto: `El DNI ${documento} no figura en el padrón. Regístralo para continuar con la venta.`,
+          texto: `El ${regla.etiqueta} ${documento} no figura en el padrón. Regístralo para continuar con la venta.`,
         })
-        setAltaDocumento(documento)
+        setAlta({ tipo, numero: documento })
       } else if (!(fallo instanceof ApiError && fallo.status === 401)) {
         // Un 401 lo resuelve el cliente HTTP: cierra la sesión y la app vuelve al login.
         setAviso({ tono: 'error', texto: mensajeDe(fallo) })
@@ -91,6 +111,8 @@ export default function CustomerSection({ cliente, onAsociarCliente }: CustomerS
       setBuscando(false)
     }
   }
+
+  const textoBoton = tipo === 'RUC' ? 'Asociar' : buscando ? 'Buscando…' : 'Buscar'
 
   return (
     <section aria-labelledby="titulo-cliente" className="flex flex-col gap-2">
@@ -104,7 +126,7 @@ export default function CustomerSection({ cliente, onAsociarCliente }: CustomerS
           <div className="min-w-0 flex-1 text-sm">
             <p className="truncate font-semibold">{cliente.nombre}</p>
             <p className="text-text-secondary">
-              {cliente.tipoDocumento} {cliente.numeroDocumento}
+              {REGLAS_DOCUMENTO[cliente.tipoDocumento]?.etiqueta ?? cliente.tipoDocumento} {cliente.numeroDocumento}
             </p>
           </div>
           <Button variant="outline" onClick={cambiarCliente}>
@@ -113,40 +135,42 @@ export default function CustomerSection({ cliente, onAsociarCliente }: CustomerS
         </div>
       ) : (
         <form onSubmit={enviar} noValidate className="flex flex-col gap-2">
-          <div className="flex items-start gap-2">
-            <div
-              role="group"
-              aria-label="Tipo de documento"
-              className="flex shrink-0 gap-1 rounded-lg bg-surface-cloud-subtle p-1"
-            >
-              {(['DNI', 'RUC'] as TipoDocumento[]).map((opcion) => (
-                <button
-                  key={opcion}
-                  type="button"
-                  aria-pressed={tipo === opcion}
-                  onClick={() => cambiarTipo(opcion)}
-                  className={[
-                    'rounded-md px-3 py-1.5 text-sm font-semibold transition-colors',
-                    tipo === opcion
-                      ? 'bg-white text-text-primary shadow-sm'
-                      : 'text-text-secondary hover:text-text-primary',
-                  ].join(' ')}
-                >
-                  {opcion}
-                </button>
-              ))}
-            </div>
+          <div
+            role="group"
+            aria-label="Tipo de documento"
+            className="flex flex-wrap gap-1 self-start rounded-lg bg-surface-cloud-subtle p-1"
+          >
+            {TIPOS_DOCUMENTO.map((opcion) => (
+              <button
+                key={opcion}
+                type="button"
+                aria-pressed={tipo === opcion}
+                onClick={() => cambiarTipo(opcion)}
+                className={[
+                  'rounded-md px-3 py-1.5 text-sm font-semibold transition-colors',
+                  tipo === opcion
+                    ? 'bg-white text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary',
+                ].join(' ')}
+              >
+                {REGLAS_DOCUMENTO[opcion].etiqueta}
+              </button>
+            ))}
+          </div>
 
+          <div className="flex items-start gap-2">
             <input
-              aria-label={tipo === 'DNI' ? 'DNI del cliente' : 'RUC de la empresa'}
+              aria-label={regla.nombreCampo}
               aria-describedby="ayuda-documento"
               aria-invalid={errorDocumento || undefined}
-              inputMode="numeric"
+              inputMode={regla.soloDigitos ? 'numeric' : 'text'}
+              autoCapitalize={regla.soloDigitos ? undefined : 'characters'}
               autoComplete="off"
-              maxLength={longitud}
-              placeholder={tipo === 'DNI' ? 'DNI: 8 dígitos' : 'RUC: 11 dígitos'}
+              spellCheck={false}
+              maxLength={regla.max}
+              placeholder={regla.placeholder}
               value={documento}
-              onChange={(evento) => setDocumento(evento.target.value.replace(/\D/g, '').slice(0, longitud))}
+              onChange={(evento) => setDocumento(enmascararDocumento(tipo, evento.target.value))}
               onBlur={() => setDocumentoTocado(true)}
               className={`${CLASE_CAMPO} min-w-0 flex-1 ${
                 errorDocumento ? 'border-error' : documentoValido ? 'border-success' : 'border-border-default'
@@ -155,7 +179,7 @@ export default function CustomerSection({ cliente, onAsociarCliente }: CustomerS
 
             <Button type="submit" variant="secondary" disabled={!listo || buscando} className="shrink-0 gap-2">
               <IconSearch size={20} aria-hidden />
-              {tipo === 'DNI' ? (buscando ? 'Buscando…' : 'Buscar') : 'Asociar'}
+              {textoBoton}
             </Button>
           </div>
 
@@ -176,24 +200,24 @@ export default function CustomerSection({ cliente, onAsociarCliente }: CustomerS
           <p
             id="ayuda-documento"
             role={errorDocumento ? 'alert' : undefined}
+            aria-live={errorDocumento ? undefined : 'polite'}
             className={errorDocumento ? 'text-xs text-error' : 'text-xs text-text-secondary'}
           >
-            {errorDocumento
-              ? `El ${tipo} debe tener exactamente ${longitud} dígitos numéricos.`
-              : ayudaDe(tipo, documentoValido)}
+            {ayudaDe(tipo, documento, estado.mensaje, documentoValido)}
           </p>
 
           {aviso && <Alert tono={aviso.tono}>{aviso.texto}</Alert>}
         </form>
       )}
 
-      {altaDocumento && (
+      {alta && (
         <QuickCustomerModal
-          numeroDocumento={altaDocumento}
-          onClose={() => setAltaDocumento(null)}
+          tipoDocumento={alta.tipo}
+          numeroDocumento={alta.numero}
+          onClose={() => setAlta(null)}
           onAsociado={(nuevo) => {
             onAsociarCliente(nuevo)
-            setAltaDocumento(null)
+            setAlta(null)
             setAviso(null)
           }}
         />
@@ -202,15 +226,22 @@ export default function CustomerSection({ cliente, onAsociarCliente }: CustomerS
   )
 }
 
-function ayudaDe(tipo: TipoDocumento, documentoValido: boolean): string {
-  if (documentoValido) return `${tipo} válido. Presiona ${tipo === 'DNI' ? 'Buscar' : 'Asociar'} para continuar.`
-  if (tipo === 'RUC') return 'El RUC se captura con la razón social (mínimo 3 caracteres) para emitir la factura.'
-  return 'Escribe los 8 dígitos del DNI para buscarlo en el padrón.'
+function ayudaDe(tipo: TipoDocumento, documento: string, mensaje: string, valido: boolean): string {
+  if (valido) return `${mensaje} Presiona ${tipo === 'RUC' ? 'Asociar' : 'Buscar'} para continuar.`
+  if (documento !== '') return mensaje
+  if (tipo === 'RUC') return 'RUC de 11 dígitos que empiece con 10 o 20, con la razón social (mínimo 3 caracteres) para la factura.'
+  const regla = REGLAS_DOCUMENTO[tipo]
+  return regla.soloDigitos
+    ? `Escribe los ${regla.min} dígitos del ${regla.etiqueta} para buscarlo en el padrón.`
+    : `Escribe el ${regla.etiqueta} (${regla.min} a ${regla.max} letras o números) para buscarlo en el padrón.`
 }
 
 function mensajeDe(fallo: unknown): string {
   if (fallo instanceof ApiError) {
     if (fallo.sinConexion) return 'No se pudo contactar al servidor. Revisa tu conexión.'
+    if (fallo.status === 400 && fallo.codigo === 'DATO_INVALIDO') {
+      return fallo.problema.errores?.[0]?.motivo ?? 'El documento no tiene un formato válido.'
+    }
     if (fallo.status === 429) return 'Alcanzaste el límite de consultas al padrón. Espera un momento e intenta de nuevo.'
     if (fallo.status === 404) return 'El cliente no figura en el padrón.'
   }
