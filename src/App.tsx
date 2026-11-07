@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import AppRouter from './router/AppRouter'
-import { listarCatalogo } from './api/catalogoApi'
+import { useCatalogoTienda } from './hooks/useCatalogoTienda'
 import { getCartSubtotal } from './lib/cart'
-import { loadCart, saveCart } from './lib/cartStorage'
-import { filterProducts, lineasVendibles } from './lib/catalog'
+import { saveCart } from './lib/cartStorage'
+import { filterProducts } from './lib/catalog'
 import { useAuthStore } from './store/authStore'
 import { useCartStore } from './store/cart'
 import { ContingenciaProvider } from './context/ContingenciaContext'
-import { guardarCatalogoCache, obtenerCatalogoCache } from './lib/offlineStorage'
 import type { Product } from './types'
 
 export default function App() {
@@ -21,30 +20,8 @@ export default function App() {
     void useAuthStore.getState().restaurarSesion()
   }, [])
 
-  // F2: el catálogo viene de Retail (contrato §5.2), con los mismos SKU que valida la venta.
-  const [products, setProducts] = useState<Product[]>([])
-  useEffect(() => {
-    if (!isAuthenticated) return
-    let vigente = true
-    listarCatalogo()
-      .then((catalogo) => {
-        // F10: copia local del catálogo para operar en contingencia offline (CA-10-03)
-        void guardarCatalogoCache(catalogo)
-        return catalogo
-      })
-      .catch(async () => (await obtenerCatalogoCache()) ?? [])
-      .then((catalogo) => {
-        if (!vigente) return
-        setProducts(catalogo)
-        if (useCartStore.getState().items.length === 0) {
-          const inicial = loadCart(lineasVendibles(catalogo), window.localStorage)
-          if (inicial.length > 0) useCartStore.getState().cargarCarrito(inicial)
-        }
-      })
-    return () => {
-      vigente = false
-    }
-  }, [isAuthenticated])
+  // F2: catálogo de la tienda desde Retail, con los mismos SKU que valida la venta.
+  const products = useCatalogoTienda(isAuthenticated)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
   const cart = useCartStore((s) => s.items)
