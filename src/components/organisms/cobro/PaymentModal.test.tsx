@@ -12,7 +12,9 @@ afterEach(() => {
 })
 
 it('reintenta el mismo cobro y guarda la boleta emitida por Retail', async () => {
+  // Cada clic hace un intento y un reintento automático: los dos primeros 503 agotan el primer clic.
   const post = vi.spyOn(api, 'post')
+    .mockRejectedValueOnce(new ApiError(503, { detail: 'Ventas no confirmó el cobro' }))
     .mockRejectedValueOnce(new ApiError(503, { detail: 'Ventas no confirmó el cobro' }))
     .mockResolvedValueOnce({
       pedidoId: 'PED-2026-00412',
@@ -38,11 +40,14 @@ it('reintenta el mismo cobro y guarda la boleta emitida por Retail', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Exacto' }))
   const boton = screen.getByRole('button', { name: 'Confirmar Pago y Finalizar' })
   fireEvent.click(boton)
-  await screen.findByText('Ventas no confirmó el cobro')
+  await screen.findByText('Ventas no confirmó el cobro', undefined, { timeout: 4000 })
+  expect(post).toHaveBeenCalledTimes(2)
   expect(sessionStorage.getItem('f5_ultima_venta')).toBeNull()
   fireEvent.click(boton)
   await waitFor(() => expect(confirmar).toHaveBeenCalledOnce())
+  expect(post).toHaveBeenCalledTimes(3)
   expect(post.mock.calls[0]).toEqual(post.mock.calls[1])
+  expect(post.mock.calls[0]).toEqual(post.mock.calls[2])
   expect(post.mock.calls[0][0]).toBe('/api/v1/retail/ventas')
   expect(JSON.parse(sessionStorage.getItem('f5_ultima_venta') ?? '{}')).toMatchObject({
     pedidoId: 'PED-2026-00412', serie: 'B001', correlativo: '00000045', qr: 'qr-backend',
