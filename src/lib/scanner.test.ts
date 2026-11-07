@@ -54,3 +54,12 @@ describe('sampleBarcodes', () => {
     ])
   })
 })
+
+describe('sampleBarcodes con el catálogo de Retail', () => {
+  it('usa el SKU como código de muestra cuando la variante no trae código de barras', () => {
+    const sinEtiqueta: Product[] = [
+      { ...catalog[0], variants: [{ sku: 'POLTEC-M-BLA', barcode: '', size: 'M', color: 'Blanco', stock: 4 }] },
+    ]
+    expect(sampleBarcodes(sinEtiqueta)).toEqual([{ code: 'POLTEC-M-BLA', label: 'Zapatillas Velocity X · M' }])
+  })
+})
