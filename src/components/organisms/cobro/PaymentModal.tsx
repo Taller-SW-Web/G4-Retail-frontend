@@ -107,6 +107,8 @@ export default function PaymentModal({
     try {
       if (!enLinea) {
         // --- FLUJO CONTINGENCIA OFFLINE (RF-27 / CA-10-02) ---
+        // El cliente general de mostrador no tiene identidad: la venta viaja sin clienteId (RF-28).
+        const clienteIdentificado = cliente.tipoDocumento === 'SIN_DOCUMENTO' ? null : cliente.id || null
         const ventaLocalUuid = crypto.randomUUID()
         const seq = Number(sessionStorage.getItem('f10_contingencia_seq') || '0') + 1
         sessionStorage.setItem('f10_contingencia_seq', String(seq))
@@ -127,7 +129,7 @@ export default function PaymentModal({
           totalNeto: total,
           efectivoRecibido: montoRecibido,
           vuelto: vuelto >= 0 ? vuelto : 0,
-          clienteId: cliente.id || null,
+          clienteId: clienteIdentificado,
         })
 
         const registroOffline: VentaOfflineRegistro = {
@@ -144,7 +146,7 @@ export default function PaymentModal({
           totalNeto: total,
           efectivoRecibido: montoRecibido,
           vuelto: vuelto >= 0 ? vuelto : 0,
-          clienteId: cliente.id || null,
+          clienteId: clienteIdentificado,
           hashIntegridad: hash,
           estado: 'PENDIENTE',
           itemsDetalle: items,

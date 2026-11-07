@@ -145,6 +145,47 @@ describe('PaymentModal en modo Contingencia Offline (RF-26, RF-27)', () => {
     expect(pendientes[0].correlativoContingencia).toBe(datosConfirmados.correlativoContingencia)
     expect(pendientes[0].hashIntegridad).toBe(datosConfirmados.hashIntegridad)
   })
+
+  it('una venta en contingencia sin cliente identificado viaja sin clienteId (RF-28)', async () => {
+    const registrarVentaOffline = vi.fn().mockResolvedValue(undefined)
+
+    render(
+      <MemoryRouter>
+        <ContingenciaContext.Provider
+          value={{
+            enLinea: false,
+            pendientesCount: 0,
+            sincronizando: false,
+            progreso: null,
+            mensajeExito: null,
+            errorSync: null,
+            registrarVentaOffline,
+            sincronizarCola: vi.fn(),
+            refrescarPendientes: vi.fn(),
+          }}
+        >
+          <PaymentModal
+            total={80}
+            cliente={{ id: 'sin-doc', nombre: 'Cliente General Mostrador', tipoDocumento: 'SIN_DOCUMENTO', numeroDocumento: '' }}
+            items={itemsMock}
+            vendedor="VEN-001"
+            terminalPos="POS-01"
+            turnoId="00000000-0000-0000-0000-000000000000"
+            onClose={vi.fn()}
+            onVentaConfirmada={vi.fn()}
+          />
+        </ContingenciaContext.Provider>
+      </MemoryRouter>
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '100' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /emitir ticket contingencia/i }))
+    })
+
+    await waitFor(() => expect(registrarVentaOffline).toHaveBeenCalledTimes(1))
+    expect(registrarVentaOffline.mock.calls[0][0].clienteId).toBeNull()
+  })
 })
 
 
