@@ -28,7 +28,8 @@ export type CartItem = {
   quantity: number
 }
 
-export type TipoDocumento = 'DNI' | 'RUC'
+/** Documentos que atiende el mostrador (F3 · RF-09): DNI, RUC, carné de extranjería y pasaporte. */
+export type TipoDocumento = 'DNI' | 'RUC' | 'CE' | 'PASAPORTE'
 
 export interface ClienteVenta {
   id?: string
