@@ -22,6 +22,7 @@ import { useCartStore } from '../store/cart'
 import { calcularTotales, getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
 import { resolveScan, sampleBarcodes } from '../lib/scanner'
+import { productoDeVariante } from '../lib/catalog'
 import Modal from '../components/molecules/Modal'
 import CustomerSection from '../components/organisms/clientes/CustomerSection'
 import PaymentModal from '../components/organisms/cobro/PaymentModal'
@@ -91,7 +92,7 @@ export default function PosPage({
   const scan = (code: string) => {
     const match = resolveScan(products, code)
     if (match) {
-      addToCart(match.product)
+      addToCart(match.variant ? productoDeVariante(match.product, match.variant) : match.product)
     }
   }
 

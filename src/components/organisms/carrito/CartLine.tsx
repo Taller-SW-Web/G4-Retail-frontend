@@ -20,6 +20,8 @@ export default function CartLine({ item }: CartLineProps) {
   const [borrador, setBorrador] = useState<string | null>(null)
 
   const enMaximoStock = item.quantity >= item.product.stock
+  // RF-05: la línea corresponde a una variante concreta cuando el artículo tiene tallas o colores.
+  const variante = item.product.variants?.length === 1 ? item.product.variants[0] : undefined
 
   return (
     <div className="rounded-xl border border-[var(--color-border-default)] bg-white p-3 shadow-xs">
@@ -29,7 +31,8 @@ export default function CartLine({ item }: CartLineProps) {
             {item.product.name}
           </p>
           <p className="text-xs text-[var(--color-text-secondary)]">
-            {item.product.category} · {formatCurrency(item.product.price)} c/u
+            {item.product.category}
+            {variante ? ` · Talla ${variante.size} · ${variante.color}` : ''} · {formatCurrency(item.product.price)} c/u
           </p>
           {enMaximoStock && (
             <p className="mt-0.5 text-xs font-medium text-[var(--color-accent-signal)]">

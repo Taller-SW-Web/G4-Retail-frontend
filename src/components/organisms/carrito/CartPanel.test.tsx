@@ -86,3 +86,14 @@ describe('Carrito en espera (RF-10 y RF-12)', () => {
     expect(screen.getAllByText('S/ 100.00').length).toBeGreaterThan(0)
   })
 })
+
+it('muestra la talla y el color de la variante vendida en la línea del carrito (RF-05)', () => {
+  useCartStore.getState().agregarProducto({
+    ...producto,
+    id: 'ZAP-40-AZU',
+    variants: [{ sku: 'ZAP-40-AZU', barcode: '', size: '40', color: 'Azul', stock: 3 }],
+  })
+  render(<CartPanel />)
+
+  expect(screen.getByText(/Talla 40 · Azul/)).toBeTruthy()
+})
