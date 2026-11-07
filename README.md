@@ -46,3 +46,9 @@ src/
 3. Compón los organismos desde `pages/`. Mantén el estado compartido en `App.tsx` mientras el flujo sea pequeño; extrae un store o servicio cuando una funcionalidad lo justifique.
 4. Añade pruebas junto a las reglas de dominio (`*.test.ts`) y ejecuta `npm test` y `npm run build` antes de integrar cambios.
 5. Usa los tokens de `src/index.css` para mantener el sistema visual documentado en [`docs/design-system.md`](./docs/design-system.md), y conserva etiquetas accesibles y estados vacíos para las interacciones nuevas.
+
+## Revision automatica de seguridad
+
+Los PR hacia `develop` publican un resumen de SonarQube, GHAS SAST (CodeQL) y GHAS SCA
+en GitHub Actions y en un comentario del PR. Los analisis son informativos en `develop`
+y obligatorios al promover desde `develop` hacia `main`.
