@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import OrdersHistoryPage from './OrdersHistoryPage'
 import { buscarPedidos, obtenerPedido } from '../api/pedidoApi'
@@ -107,7 +107,7 @@ describe('OrdersHistoryPage (RF-16)', () => {
     buscarPor(/Por código de pedido/, 'PED-2026-00412')
 
     expect(await screen.findByRole('dialog', { name: 'Pedido PED-2026-00412' })).toBeTruthy()
-    expect(obtenerPedido).toHaveBeenCalledWith('PED-2026-00412')
+    await waitFor(() => expect(obtenerPedido).toHaveBeenCalledWith('PED-2026-00412'))
   })
 
   it('llega con la búsqueda hecha desde la boleta (?codigo=)', async () => {
