@@ -7,13 +7,20 @@
  * La consulta al padrón va contra el **servicio real**, igual que `GET /retail/perfil`: el alta
  * rápida se apoya en que un documento inexistente responda `404`, así que dejar esa ruta en un mock
  * escondería justo el camino que hay que demostrar. Las rutas son las que fija el documento de
- * reparto de la Semana 8: `GET /api/v1/retail/clientes?tipoDocumento=DNI&numeroDocumento={dni}` y
+ * reparto de la Semana 8: `GET /api/v1/retail/clientes?tipoDocumento={tipo}&numeroDocumento={numero}` y
  * `POST /api/v1/retail/clientes`.
  */
 import { api } from '../../../api/http'
+import type { TipoDocumento } from '../../../types'
 
-/** Documentos que atiende el mostrador: DNI para persona natural y RUC para empresa (RF-09). */
-export type TipoDocumento = 'DNI' | 'RUC'
+/**
+ * Documentos que atiende el mostrador (RF-09): DNI, RUC, carné de extranjería (CE) y pasaporte.
+ * Las reglas de formato viven en `lib/documento.ts`.
+ */
+export type { TipoDocumento }
+
+/** Documentos de persona natural que se consultan en el padrón y admiten alta rápida (RF-07, RF-08). */
+export type DocumentoPersona = Exclude<TipoDocumento, 'RUC'>
 
 /**
  * Cliente ya listo para viajar en la orden de venta.
@@ -41,7 +48,7 @@ export interface ClienteResponse {
 /** Cuerpo de `POST /api/v1/retail/clientes`; espeja `ClienteAltaRapidaRequest`. */
 export interface ClienteAltaRapidaRequest {
   canalOrigen: 'RETAIL'
-  tipoDocumento: 'DNI'
+  tipoDocumento: DocumentoPersona
   numeroDocumento: string
   nombres: string
   apellidos: string
@@ -49,11 +56,13 @@ export interface ClienteAltaRapidaRequest {
   telefono: string
 }
 
-/** Responde `404` cuando el documento no está en el padrón: esa es la señal para el alta (RF-08). */
-export function buscarCliente(numeroDocumento: string): Promise<ClienteResponse> {
-  return api.get<ClienteResponse>(
-    `/api/v1/retail/clientes?tipoDocumento=DNI&numeroDocumento=${numeroDocumento}`,
-  )
+/**
+ * Responde `404` cuando el documento no está en el padrón: esa es la señal para el alta (RF-08).
+ * Responde `400 DATO_INVALIDO` si el formato no cumple RF-09.
+ */
+export function buscarCliente(tipoDocumento: DocumentoPersona, numeroDocumento: string): Promise<ClienteResponse> {
+  const consulta = new URLSearchParams({ tipoDocumento, numeroDocumento })
+  return api.get<ClienteResponse>(`/api/v1/retail/clientes?${consulta}`)
 }
 
 /** Responde `409` si el documento ya existe, para ofrecer vincular al cliente que ya estaba. */

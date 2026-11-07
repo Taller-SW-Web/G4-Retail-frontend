@@ -11,7 +11,7 @@ export type TipoComprobante = 'BOLETA' | 'FACTURA'
 export interface ClienteResumen {
   id: string
   nombre: string
-  tipoDocumento: 'DNI' | 'RUC' | 'SIN_DOCUMENTO'
+  tipoDocumento: 'DNI' | 'RUC' | 'CE' | 'PASAPORTE' | 'SIN_DOCUMENTO'
   numeroDocumento: string
 }
 
