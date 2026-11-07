@@ -3,6 +3,7 @@ const currencyFormatter = new Intl.NumberFormat('es-PE', {
   maximumFractionDigits: 2,
 })
 
+/** Importe en soles con dos decimales, como en la boleta: `S/ 59.90`. */
 export function formatCurrency(amount: number): string {
   return `S/ ${currencyFormatter.format(amount)}`
 }
