@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 type BadgeProps = {
-  tone?: 'neutral' | 'success' | 'warning' | 'info' | 'brand'
+  tone?: 'neutral' | 'success' | 'warning' | 'info' | 'error' | 'brand'
   children: ReactNode
 }
 
@@ -11,11 +11,13 @@ export default function Badge({ tone = 'neutral', children }: BadgeProps) {
     success: 'bg-[#EBFBEE] text-[#2F9E44]',
     warning: 'bg-[#FFF9DB] text-[#F08C00]',
     info: 'bg-[#E7F5FF] text-[#1971C2]',
+    error: 'bg-[var(--color-error-bg)] text-[var(--color-error)]',
     brand: 'bg-[var(--color-accent-volt)] text-[var(--color-text-primary)]',
   }
 
   return (
     <span
+      data-tone={tone}
       className={[
         'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide',
         palettes[tone],

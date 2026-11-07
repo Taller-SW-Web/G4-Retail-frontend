@@ -4,6 +4,7 @@ import PosPage from '../pages/PosPage'
 import PickupPage from '../pages/PickupPage'
 import CashClosePage from '../pages/CashClosePage'
 import ReceiptPage from '../pages/ReceiptPage'
+import OrdersHistoryPage from '../pages/OrdersHistoryPage'
 import type { CartItem, Product } from '../types'
 
 type AppRouterProps = {
@@ -71,6 +72,10 @@ export default function AppRouter(props: AppRouterProps) {
       <Route
         path="/pos/comprobante"
         element={props.isAuthenticated ? <ReceiptPage /> : <Navigate to="/login" replace />}
+      />
+      <Route
+        path="/pedidos"
+        element={props.isAuthenticated ? <OrdersHistoryPage /> : <Navigate to="/login" replace />}
       />
       <Route path="/" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
       <Route path="*" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
