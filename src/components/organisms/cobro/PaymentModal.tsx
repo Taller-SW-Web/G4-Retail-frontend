@@ -4,7 +4,7 @@ import { IconCash, IconCreditCard, IconX } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
 import { formatCurrency } from '../../../lib/format'
 import { ApiError } from '../../../api/http'
-import { registrarVenta, type MedioPago, type TipoComprobante, type VentaRequest } from '../../../api/ventas'
+import { registrarVentaConReintento, type MedioPago, type TipoComprobante, type VentaRequest } from '../../../api/ventas'
 import type { VentaFinalizada } from './Receipt'
 import { ContingenciaContext } from '../../../context/ContingenciaContext'
 import { useEstadoConexion } from '../../../hooks/useEstadoConexion'
@@ -211,7 +211,7 @@ export default function PaymentModal({
         },
       }
       const { clave, peticion } = pendiente.current
-      const venta = await registrarVenta(peticion, clave)
+      const venta = await registrarVentaConReintento(peticion, clave)
       const comprobante = venta.comprobante
       const ventaCompleta: VentaFinalizada = {
         ...comprobante,
