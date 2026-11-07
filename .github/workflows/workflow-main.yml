@@ -1,0 +1,41 @@
+# ---------------------------------------------------------------------------
+# Caller: Despliegue a Produccion — G4 Retail Frontend
+# Al llegar codigo a main (push o merge), ejecuta CI y luego despliega
+# a Vercel produccion delegando toda la orquestacion a los templates
+# reutilizables de devsecops-templates.
+#
+# Configuracion requerida (Settings > Secrets and variables > Actions):
+#   Secret: VERCEL_TOKEN      — Token de la API de Vercel
+#   Secret: VERCEL_ORG_ID     — ID de la organizacion en Vercel
+#   Secret: VERCEL_PROJECT_ID — ID del proyecto en Vercel
+#
+# No contiene jobs locales de ejecucion.
+# ---------------------------------------------------------------------------
+name: "Deploy Production — g4-retail-frontend"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci_pipeline:
+    uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-ci-node.yml@main
+    with:
+      component_name: g4-retail-frontend
+      node_version: "22"
+
+  deploy_production:
+    needs: ci_pipeline
+    uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-deploy-vercel.yml@main
+    with:
+      component_name: g4-retail-frontend
+      environment_name: production
+      node_version: "22"
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

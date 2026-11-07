@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# Caller: Analisis de Pull Request — G4 Retail Frontend
+# Ejecuta la pipeline de CI delegando toda la orquestacion al template
+# reutilizable de devsecops-templates (workflow-ci-node).
+#
+# No contiene jobs locales de ejecucion.
+# ---------------------------------------------------------------------------
+name: "PR Analysis — g4-retail-frontend"
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop, "feat/**", "fix/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci_pipeline:
+    uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-ci-node.yml@main
+    with:
+      component_name: g4-retail-frontend
+      node_version: "22"
