@@ -4,7 +4,7 @@ import { IconCash, IconCreditCard, IconX } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
 import { formatCurrency } from '../../../lib/format'
 import { ApiError } from '../../../api/http'
-import { registrarVenta, type MedioPago, type TipoComprobante, type VentaRequest } from '../../../api/ventas'
+import { registrarVentaConReintento, type MedioPago, type TipoComprobante, type VentaRequest } from '../../../api/ventas'
 import type { VentaFinalizada } from './Receipt'
 import { ContingenciaContext } from '../../../context/ContingenciaContext'
 import { useEstadoConexion } from '../../../hooks/useEstadoConexion'
@@ -107,6 +107,8 @@ export default function PaymentModal({
     try {
       if (!enLinea) {
         // --- FLUJO CONTINGENCIA OFFLINE (RF-27 / CA-10-02) ---
+        // El cliente general de mostrador no tiene identidad: la venta viaja sin clienteId (RF-28).
+        const clienteIdentificado = cliente.tipoDocumento === 'SIN_DOCUMENTO' ? null : cliente.id || null
         const ventaLocalUuid = crypto.randomUUID()
         const seq = Number(sessionStorage.getItem('f10_contingencia_seq') || '0') + 1
         sessionStorage.setItem('f10_contingencia_seq', String(seq))
@@ -127,7 +129,7 @@ export default function PaymentModal({
           totalNeto: total,
           efectivoRecibido: montoRecibido,
           vuelto: vuelto >= 0 ? vuelto : 0,
-          clienteId: cliente.id || null,
+          clienteId: clienteIdentificado,
         })
 
         const registroOffline: VentaOfflineRegistro = {
@@ -144,7 +146,7 @@ export default function PaymentModal({
           totalNeto: total,
           efectivoRecibido: montoRecibido,
           vuelto: vuelto >= 0 ? vuelto : 0,
-          clienteId: cliente.id || null,
+          clienteId: clienteIdentificado,
           hashIntegridad: hash,
           estado: 'PENDIENTE',
           itemsDetalle: items,
@@ -209,7 +211,7 @@ export default function PaymentModal({
         },
       }
       const { clave, peticion } = pendiente.current
-      const venta = await registrarVenta(peticion, clave)
+      const venta = await registrarVentaConReintento(peticion, clave)
       const comprobante = venta.comprobante
       const ventaCompleta: VentaFinalizada = {
         ...comprobante,
