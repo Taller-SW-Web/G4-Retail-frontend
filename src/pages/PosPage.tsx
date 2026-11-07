@@ -80,7 +80,7 @@ export default function PosPage({
     const alPulsar = (evento: KeyboardEvent) => {
       if (evento.key === 'F6') {
         evento.preventDefault()
-        navigate('/pedidos')
+        void navigate('/pedidos')
       }
     }
     window.addEventListener('keydown', alPulsar)

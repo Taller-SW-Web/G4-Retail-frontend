@@ -183,7 +183,7 @@ export default function PaymentModal({
 
         sessionStorage.setItem('f5_ultima_venta', JSON.stringify(ventaCompleta))
         onVentaConfirmada(ventaCompleta)
-        navigate('/pos/comprobante')
+        void navigate('/pos/comprobante')
         return
       }
 
@@ -234,7 +234,7 @@ export default function PaymentModal({
 
       sessionStorage.setItem('f5_ultima_venta', JSON.stringify(ventaCompleta))
       onVentaConfirmada(ventaCompleta)
-      navigate('/pos/comprobante')
+      void navigate('/pos/comprobante')
     } catch (causa) {
       const rechazo = causa instanceof ApiError && causa.status >= 400 && causa.status < 500
       if (rechazo) pendiente.current = null

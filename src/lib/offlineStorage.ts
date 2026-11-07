@@ -10,6 +10,11 @@ const STORE_CATALOGO = 'catalogo_cache'
 const fallbackVentas = new Map<string, VentaOfflineRegistro>()
 let fallbackCatalogo: Product[] | null = null
 
+/** IndexedDB puede reportar un error nulo: el rechazo siempre lleva un Error con contexto. */
+function comoError(causa: DOMException | null, operacion: string): Error {
+  return causa ?? new Error(`IndexedDB falló al ${operacion}`)
+}
+
 function tieneIndexedDB(): boolean {
   return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined'
 }
@@ -36,7 +41,7 @@ function abrirBD(): Promise<IDBDatabase> {
     }
 
     request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error)
+    request.onerror = () => reject(comoError(request.error, 'abrir la base local'))
   })
 }
 
@@ -54,7 +59,7 @@ export async function guardarVentaOffline(venta: VentaOfflineRegistro): Promise<
     const req = store.put(venta)
 
     req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(comoError(req.error, 'guardar la venta offline'))
   })
 }
 
@@ -83,7 +88,7 @@ export async function obtenerVentasPendientes(): Promise<VentaOfflineRegistro[]>
       )
       resolve(pendientes)
     }
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(comoError(req.error, 'leer las ventas pendientes'))
   })
 }
 
@@ -127,9 +132,9 @@ export async function actualizarEstadoVentaOffline(
 
       const putReq = store.put(venta)
       putReq.onsuccess = () => resolve()
-      putReq.onerror = () => reject(putReq.error)
+      putReq.onerror = () => reject(comoError(putReq.error, 'actualizar la venta offline'))
     }
-    getReq.onerror = () => reject(getReq.error)
+    getReq.onerror = () => reject(comoError(getReq.error, 'leer la venta offline'))
   })
 }
 
@@ -160,7 +165,7 @@ export async function guardarCatalogoCache(productos: Product[]): Promise<void> 
       store.put(p)
     }
     tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
+    tx.onerror = () => reject(comoError(tx.error, 'guardar el catálogo local'))
   })
 }
 
@@ -181,7 +186,7 @@ export async function obtenerCatalogoCache(): Promise<Product[] | null> {
       req.onsuccess = () => {
         resolve(req.result && req.result.length > 0 ? req.result : null)
       }
-      req.onerror = () => reject(req.error)
+      req.onerror = () => reject(comoError(req.error, 'leer el catálogo local'))
     })
   } catch {
     return null

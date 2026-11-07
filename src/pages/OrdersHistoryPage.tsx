@@ -8,6 +8,7 @@ import OrderHistoryModal from '../components/organisms/historial/OrderHistoryMod
 import OrderHistoryTable from '../components/organisms/historial/OrderHistoryTable'
 import { ApiError } from '../api/http'
 import { buscarPedidos, type FiltroPedidos, type PaginaPedidos } from '../api/pedidoApi'
+import { useEnfoqueInicial } from '../hooks/useEnfoqueInicial'
 import { esDocumentoValido } from '../lib/pedidos'
 
 type Criterio = 'codigo' | 'documento'
@@ -36,6 +37,7 @@ export default function OrdersHistoryPage() {
   const [parametros] = useSearchParams()
   const [criterio, setCriterio] = useState<Criterio>(parametros.get('documento') ? 'documento' : 'codigo')
   const [valor, setValor] = useState(parametros.get('documento') ?? parametros.get('codigo') ?? '')
+  const campoBusqueda = useEnfoqueInicial<HTMLInputElement>()
   const [errorCampo, setErrorCampo] = useState<string | null>(null)
   const [resultado, setResultado] = useState<Resultado>({ tipo: 'inicial' })
   const [ultimaBusqueda, setUltimaBusqueda] = useState<{ filtro: FiltroPedidos; page: number } | null>(null)
@@ -142,7 +144,7 @@ export default function OrdersHistoryPage() {
                 placeholder={criterio === 'codigo' ? 'PED-2026-00412' : 'DNI de 8 dígitos o RUC de 11'}
                 inputMode={criterio === 'documento' ? 'numeric' : 'text'}
                 maxLength={criterio === 'documento' ? 11 : 40}
-                autoFocus
+                ref={campoBusqueda}
                 aria-invalid={!!errorCampo}
                 aria-describedby={
                   errorCampo ? 'busqueda-pedido-error' : criterio === 'documento' ? 'busqueda-pedido-alcance' : undefined

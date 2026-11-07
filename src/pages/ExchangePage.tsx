@@ -5,6 +5,7 @@ import Badge from '../components/atoms/Badge'
 import Button from '../components/atoms/Button'
 import Alert from '../components/molecules/Alert'
 import ExchangeModal from '../components/organisms/cambios/ExchangeModal'
+import { useEnfoqueInicial } from '../hooks/useEnfoqueInicial'
 import { ApiError } from '../api/http'
 import {
   esBoletaValida,
@@ -23,6 +24,7 @@ import { formatCurrency, formatFechaHora } from '../lib/format'
 export default function ExchangePage() {
   const [parametros] = useSearchParams()
   const [boleta, setBoleta] = useState(() => parametros.get('boleta') ?? '')
+  const campoBoleta = useEnfoqueInicial<HTMLInputElement>()
   const [validacion, setValidacion] = useState<ValidacionCambio | null>(null)
   const [consultando, setConsultando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -84,7 +86,7 @@ export default function ExchangePage() {
               <IconBarcode size={18} /> Boleta o factura de la compra
             </span>
             <input
-              autoFocus
+              ref={campoBoleta}
               value={boleta}
               onChange={(evento) => setBoleta(evento.target.value)}
               placeholder="B001-00000045"
