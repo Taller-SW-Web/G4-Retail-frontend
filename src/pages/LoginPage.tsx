@@ -1,6 +1,7 @@
 import { IconAlertTriangle, IconLock, IconUser } from '@tabler/icons-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import Button from '../components/atoms/Button'
+import { USAR_AUTH_MOCK } from '../api/seguridad'
 import { useAuthStore } from '../store/authStore'
 
 type LoginPageProps = {
@@ -15,8 +16,9 @@ type LoginPageProps = {
  * Esta semana quien responde el login es el mock del front.
  */
 export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [correo, setCorreo] = useState('vendedor1@inkaathletics.pe')
-  const [clave, setClave] = useState('Retail2026!')
+  // La cuenta semilla solo se precarga en el modo simulado; con G7 real el formulario empieza vacío.
+  const [correo, setCorreo] = useState(USAR_AUTH_MOCK ? 'vendedor1@inkaathletics.pe' : '')
+  const [clave, setClave] = useState(USAR_AUTH_MOCK ? 'Retail2026!' : '')
 
   const autenticado = useAuthStore((estado) => estado.autenticado())
   const entrar = useAuthStore((estado) => estado.entrar)
