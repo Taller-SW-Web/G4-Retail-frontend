@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import AppRouter from './router/AppRouter'
-import { products } from './data/products'
+import { listarCatalogo } from './api/catalogoApi'
 import { getCartSubtotal } from './lib/cart'
 import { loadCart, saveCart } from './lib/cartStorage'
-import { filterProducts } from './lib/catalog'
+import { filterProducts, lineasVendibles } from './lib/catalog'
 import { useAuthStore } from './store/authStore'
 import { useCartStore } from './store/cart'
 import { ContingenciaProvider } from './context/ContingenciaContext'
-import { guardarCatalogoCache } from './lib/offlineStorage'
+import { guardarCatalogoCache, obtenerCatalogoCache } from './lib/offlineStorage'
 import type { Product } from './types'
 
 export default function App() {
@@ -19,15 +19,32 @@ export default function App() {
   // reloguearse solo por refrescar la pagina en medio de una atencion.
   useEffect(() => {
     void useAuthStore.getState().restaurarSesion()
-
-    const inicial = loadCart(products, window.localStorage)
-    if (inicial.length > 0) {
-      useCartStore.getState().cargarCarrito(inicial)
-    }
-
-    // F10: inicializar la copia local del catálogo en IndexedDB para contingencia offline (CA-10-03)
-    void guardarCatalogoCache(products)
   }, [])
+
+  // F2: el catálogo viene de Retail (contrato §5.2), con los mismos SKU que valida la venta.
+  const [products, setProducts] = useState<Product[]>([])
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let vigente = true
+    listarCatalogo()
+      .then((catalogo) => {
+        // F10: copia local del catálogo para operar en contingencia offline (CA-10-03)
+        void guardarCatalogoCache(catalogo)
+        return catalogo
+      })
+      .catch(async () => (await obtenerCatalogoCache()) ?? [])
+      .then((catalogo) => {
+        if (!vigente) return
+        setProducts(catalogo)
+        if (useCartStore.getState().items.length === 0) {
+          const inicial = loadCart(lineasVendibles(catalogo), window.localStorage)
+          if (inicial.length > 0) useCartStore.getState().cargarCarrito(inicial)
+        }
+      })
+    return () => {
+      vigente = false
+    }
+  }, [isAuthenticated])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Todas')
   const cart = useCartStore((s) => s.items)
@@ -38,7 +55,7 @@ export default function App() {
 
   const filteredProducts = useMemo(() => {
     return filterProducts(products, search, category)
-  }, [search, category])
+  }, [products, search, category])
 
   const addToCart = (product: Product) => useCartStore.getState().agregarProducto(product)
   const increaseQuantity = (productId: string) => useCartStore.getState().aumentarCantidad(productId)
@@ -47,7 +64,7 @@ export default function App() {
 
   const subtotal = getCartSubtotal(cart)
   // Sin 'Todas': esa opción la pone CategoryFilter, y agregarla aquí la duplicaba en la barra.
-  const categories = useMemo(() => [...new Set(products.map((p) => p.category))], [])
+  const categories = useMemo(() => [...new Set(products.map((p) => p.category))], [products])
 
   return (
     <BrowserRouter>
