@@ -11,6 +11,10 @@ export default defineConfig({
         target: 'https://g7-auth-service.onrender.com',
         changeOrigin: true,
         secure: false,
+        // G7 responde 403 a peticiones con Origin localhost; el proxy local no debe reenviarlo.
+        configure: (proxy) => {
+          proxy.on('proxyReq', (peticion) => peticion.removeHeader('origin'))
+        },
       },
     },
   },
