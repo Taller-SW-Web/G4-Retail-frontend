@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import CustomerSection from './CustomerSection'
@@ -69,4 +69,3 @@ it('RF-09: correo con puntos consecutivos bloquea guardar aunque los demás dato
   expect(screen.getByText(/Ingresa un correo electrónico válido/)).toBeTruthy()
   expect(registrarCliente).not.toHaveBeenCalled()
 })
-
