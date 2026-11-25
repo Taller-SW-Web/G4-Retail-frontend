@@ -89,4 +89,14 @@ img {
     box-shadow: none;
     padding: 0;
   }
+
+  /* Acta de merma (RF-34): hoja A4 para adjuntarla al bulto, no ticket térmico */
+  @page acta-a4 {
+    size: A4;
+    margin: 15mm;
+  }
+  .print-area.print-a4 {
+    page: acta-a4;
+    width: 100%;
+  }
 }
