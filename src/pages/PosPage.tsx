@@ -65,6 +65,7 @@ export default function PosPage({
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [showConfirmNuevoTicket, setShowConfirmNuevoTicket] = useState(false)
   const perfil = useAuthStore((store) => store.perfil)
+  const esSupervisor = perfil?.perfilTienda === 'SUPERVISOR'
   const cliente = useCartStore((store) => store.cliente)
   const cupon = useCartStore((store) => store.cupon)
   const totales = useMemo(() => calcularTotales(cart, cupon), [cart, cupon])
@@ -145,6 +146,11 @@ export default function PosPage({
               <Link to="/cambios" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
                 🔄 Cambios (F9)
               </Link>
+              {esSupervisor && (
+                <Link to="/inventario/actas" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
+                  📋 Actas de merma (F12)
+                </Link>
+              )}
             </div>
           </div>
         </div>
