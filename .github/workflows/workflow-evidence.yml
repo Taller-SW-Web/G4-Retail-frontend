@@ -1,0 +1,37 @@
+name: Evidencias Frontend S14
+on:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruebas:
+    name: Pruebas, build y auditoría de dependencias
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci
+      - name: Pruebas con reporte JUnit
+        run: npm run test:ci
+      - name: Compilación de producción
+        run: npm run build
+      - name: Auditoría completa del lockfile (incluye herramientas de build)
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p reports
+          npm audit --audit-level=high --json > reports/npm-audit.json
+      - name: Publicar evidencia incluso ante fallos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-s14-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/
+          if-no-files-found: error
+          retention-days: 30
