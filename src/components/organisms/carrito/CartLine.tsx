@@ -36,7 +36,9 @@ export default function CartLine({ item }: CartLineProps) {
           </p>
           {enMaximoStock && (
             <p className="mt-0.5 text-xs font-medium text-[var(--color-accent-signal)]">
-              Stock máximo en tienda alcanzado ({item.product.stock} un.)
+              {item.product.stockConocido === false
+                ? 'Cantidad máxima por línea: confirma existencias en tienda'
+                : `Stock máximo en tienda alcanzado (${item.product.stock} un.)`}
             </p>
           )}
         </div>

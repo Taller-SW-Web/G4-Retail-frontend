@@ -1,3 +1,6 @@
+/** Semáforo comercial de Retail (RF-06, contrato §5.2). */
+export type Disponibilidad = 'DISPONIBLE' | 'ULTIMAS_UNIDADES' | 'SOLO_ALMACEN_CENTRAL' | 'AGOTADO_TOTAL'
+
 export type Variant = {
   /** SKU vendible: la combinación exacta de talla y color que entra al carrito. */
   sku: string
@@ -5,7 +8,16 @@ export type Variant = {
   barcode: string
   size: string
   color: string
+  /**
+   * Unidades vendibles. Si `stockConocido` es `false`, es solo un tope referencial derivado de la
+   * disponibilidad: Productos (G6) no expone cantidades a los canales (X-P0-03) y no se muestra.
+   */
   stock: number
+  /** Precio vigente del SKU. G6 cotiza por variante y dos tallas pueden costar distinto. */
+  price?: number
+  disponibilidad?: Disponibilidad
+  /** `false` cuando `stockTienda` llegó `null`. Sin el campo se asume conocido (catálogo semilla). */
+  stockConocido?: boolean
 }
 
 export type Product = {
@@ -16,6 +28,9 @@ export type Product = {
   stock: number
   image: string
   badge?: string
+  /** Semáforo del artículo: el mejor estado entre sus variantes. */
+  disponibilidad?: Disponibilidad
+  stockConocido?: boolean
   /**
    * Variantes de talla y color (RF-05). Es opcional porque no todo artículo las tiene:
    * una mancuerna de 12 kg se vende sin tallas y su ficha no debe inventar una matriz.

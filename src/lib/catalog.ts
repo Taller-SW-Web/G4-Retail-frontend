@@ -37,10 +37,19 @@ export function filterProducts(
 
 /**
  * Línea vendible de una variante (RF-05): la talla y el color elegidos entran al carrito con su
- * propio SKU y stock, para que la venta descuente exactamente esa prenda y no la primera variante.
+ * propio SKU, precio y stock, para que la venta descuente exactamente esa prenda y no la primera variante.
  */
 export function productoDeVariante(product: Product, variant: Variant): Product {
-  return { ...product, id: variant.sku, stock: variant.stock, variants: [variant] }
+  return {
+    ...product,
+    id: variant.sku,
+    // G6 cotiza por SKU: la línea lleva el precio de esa talla, no el "desde" del artículo.
+    price: variant.price ?? product.price,
+    stock: variant.stock,
+    disponibilidad: variant.disponibilidad ?? product.disponibilidad,
+    stockConocido: variant.stockConocido ?? product.stockConocido,
+    variants: [variant],
+  }
 }
 
 /** Catálogo más una línea por variante: sirve para recuperar el carrito guardado en el navegador. */

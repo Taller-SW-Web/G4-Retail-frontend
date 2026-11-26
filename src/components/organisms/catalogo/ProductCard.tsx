@@ -13,7 +13,9 @@ type ProductCardProps = {
 }
 
 export default function ProductCard({ product, onAdd, onOpen }: ProductCardProps) {
-  const stockStatus = getStockStatus(product.stock)
+  const stockStatus = getStockStatus(product)
+  // G6 cotiza por SKU; sin precio vigente el backend rechazaría la venta, así que no se ofrece.
+  const conPrecio = product.price > 0
   // Con tallas y colores no se puede añadir desde la tarjeta: habría que adivinar cuál se vende.
   const hasVariants = Boolean(product.variants?.length)
 
@@ -48,19 +50,28 @@ export default function ProductCard({ product, onAdd, onOpen }: ProductCardProps
               )}
             </h3>
           </div>
-          <span className="text-lg font-bold text-[var(--color-text-primary)]">{formatCurrency(product.price)}</span>
+          {conPrecio ? (
+            <span className="shrink-0 text-lg font-bold text-[var(--color-text-primary)]">
+              {product.variants?.some((v) => v.price != null && v.price !== product.price) ? (
+                <span className="mr-1 text-xs font-semibold text-[var(--color-text-secondary)]">desde</span>
+              ) : null}
+              {formatCurrency(product.price)}
+            </span>
+          ) : (
+            <span className="shrink-0 text-sm font-semibold text-[var(--color-text-secondary)]">Precio por confirmar</span>
+          )}
         </div>
 
         <div className="flex items-center justify-between">
-          <StockBadge stock={product.stock} />
+          <StockBadge stock={product.stock} disponibilidad={product.disponibilidad} stockConocido={product.stockConocido} />
           <Button
             variant="primary"
             className="gap-2"
             onClick={() => (hasVariants && onOpen ? onOpen(product) : onAdd(product))}
-            disabled={!stockStatus.isAvailable}
+            disabled={!stockStatus.isAvailable || (!hasVariants && !conPrecio)}
           >
-            <IconPlus size={16} />
-            {!stockStatus.isAvailable ? 'Agotado' : hasVariants ? 'Elegir talla' : 'Añadir'}
+            <IconPlus size={16} aria-hidden="true" />
+            {!stockStatus.isAvailable ? 'No disponible' : hasVariants ? 'Elegir talla' : conPrecio ? 'Añadir' : 'Sin precio'}
           </Button>
         </div>
       </div>

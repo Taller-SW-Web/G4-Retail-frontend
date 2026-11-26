@@ -36,6 +36,7 @@ import { calcularTotales, getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
 import { resolveScan, sampleBarcodes } from '../lib/scanner'
 import { productoDeVariante } from '../lib/catalog'
+import { resolverCodigoBarras } from '../api/catalogoApi'
 import Modal from '../components/molecules/Modal'
 import CustomerSection from '../components/organisms/clientes/CustomerSection'
 import PaymentModal from '../components/organisms/cobro/PaymentModal'
@@ -111,8 +112,9 @@ export default function PosPage({
   }, [navigate])
 
   // Escanear o hacer clic en un botón de muestra agrega la prenda DIRECTAMENTE al carrito sin abrir modal
-  const scan = (code: string) => {
-    const match = resolveScan(products, code)
+  const scan = async (code: string) => {
+    // Primero el catálogo cargado; si no conoce la etiqueta, se pregunta a Retail (G6 no envía EAN).
+    const match = resolveScan(products, code) ?? (await resolverCodigoBarras(products, code))
     if (match) {
       addToCart(match.variant ? productoDeVariante(match.product, match.variant) : match.product)
     }

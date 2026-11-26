@@ -7,7 +7,7 @@ vi.mock('./http', async (importOriginal) => ({
 }))
 
 import { api } from './http'
-import { aProducto, listarCatalogo, type ProductoCatalogo } from './catalogoApi'
+import { aProducto, listarCatalogo, resolverCodigoBarras, type ProductoCatalogo } from './catalogoApi'
 
 afterEach(() => vi.mocked(api.get).mockReset())
 
@@ -82,5 +82,101 @@ describe('catálogo de Retail (F2 · RF-04, RF-05, RF-06 · contrato §5.2)', ()
     expect(api.get).toHaveBeenNthCalledWith(1, '/api/v1/retail/catalogo?page=0&size=1')
     expect(api.get).toHaveBeenNthCalledWith(2, '/api/v1/retail/catalogo?page=1&size=1')
     expect(productos.map((p) => p.id)).toEqual(['PROD-101', 'PROD-102'])
+  })
+})
+
+/** Artículo tal como lo arma el backend con Productos (G6) real: sin cantidades y con nulos. */
+const deG6: ProductoCatalogo = {
+  productoId: 'a1b2c3',
+  nombre: 'Polo técnico Dry',
+  marca: 'MAR-01',
+  categoria: '3f2a1b4c-1111-2222-3333-444455556666',
+  disciplina: null,
+  precio: null,
+  imagenUrl: null,
+  variantes: [
+    { sku: 'POLTEC-M-BLA', talla: 'M', color: 'Blanco', precio: 59.9, disponibilidad: 'DISPONIBLE', stockTienda: null, enCuarentena: false },
+    { sku: 'POLTEC-L-BLA', talla: 'L', color: null, precio: 64.9, disponibilidad: 'ULTIMAS_UNIDADES', stockTienda: null, enCuarentena: false },
+    { sku: 'POLTEC-XL-BLA', talla: 'XL', color: 'Blanco', precio: null, disponibilidad: 'AGOTADO_TOTAL', stockTienda: null, enCuarentena: false },
+  ],
+}
+
+describe('catálogo con datos reales de Productos G6 (F2 · RF-06 · X-P0-03)', () => {
+  it('con stockTienda null marca el stock como no conocido y no inventa cantidades visibles', () => {
+    const producto = aProducto(deG6)
+
+    expect(producto.stockConocido).toBe(false)
+    expect(producto.variants!.every((v) => v.stockConocido === false)).toBe(true)
+    expect(producto.variants!.map((v) => v.disponibilidad)).toEqual(['DISPONIBLE', 'ULTIMAS_UNIDADES', 'AGOTADO_TOTAL'])
+    expect(producto.disponibilidad).toBe('DISPONIBLE')
+  })
+
+  it('una variante agotada no se vende aunque llegue un número de stock', () => {
+    const producto = aProducto({
+      ...deG6,
+      variantes: [{ sku: 'X', talla: 'M', color: 'Negro', disponibilidad: 'SOLO_ALMACEN_CENTRAL', stockTienda: 5 }],
+    })
+    expect(producto.stock).toBe(0)
+  })
+
+  it('toma el precio por SKU y usa el menor como precio "desde" si el artículo no trae precio', () => {
+    const producto = aProducto(deG6)
+
+    expect(producto.price).toBe(59.9)
+    expect(producto.variants!.map((v) => v.price)).toEqual([59.9, 64.9, undefined])
+  })
+
+  it('soporta talla, color, nombre, categoría y variantes nulos sin romper', () => {
+    const producto = aProducto(deG6)
+    expect(producto.category).toBe('Otros')
+    expect(producto.image).toMatch(/^https:\/\//)
+    expect(producto.variants![1].color).toBe('Estándar')
+
+    const minimo = aProducto({ productoId: 'P-9', nombre: null, categoria: null, precio: null, variantes: null })
+    expect(minimo).toMatchObject({ id: 'P-9', name: 'P-9', category: 'Otros', price: 0, stock: 0, disponibilidad: 'AGOTADO_TOTAL' })
+  })
+
+  it('una sola variante sin talla se vende como talla única con su precio', () => {
+    const gorra = aProducto({
+      ...deG6,
+      variantes: [{ sku: 'GOR-U-NEG', talla: null, color: 'Negro', precio: 39.9, disponibilidad: 'DISPONIBLE', stockTienda: null }],
+    })
+    expect(gorra).toMatchObject({ id: 'GOR-U-NEG', price: 39.9, stockConocido: false })
+    expect(gorra.variants).toBeUndefined()
+  })
+
+  it('un estado desconocido de G6 se trata como disponible, no como agotado', () => {
+    const producto = aProducto({
+      ...deG6,
+      variantes: [{ sku: 'X', talla: 'M', color: 'Negro', disponibilidad: 'INDETERMINADO' as never, stockTienda: null }],
+    })
+    expect(producto.variants![0].disponibilidad).toBe('DISPONIBLE')
+    expect(producto.stock).toBeGreaterThan(0)
+  })
+})
+
+describe('lector de código de barras contra Retail (F2 · RF-04, contrato §5.2)', () => {
+  const catalogo = [aProducto(deG6)]
+
+  it('resuelve un EAN que el catálogo local no conoce con GET /catalogo/codigo-barras/{codigo}', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({
+      codigoBarras: '7751234567890', productoId: 'a1b2c3', nombre: 'Polo técnico Dry', precio: 64.9,
+      variante: { sku: 'POLTEC-L-BLA', talla: 'L', color: 'Blanco', disponibilidad: 'ULTIMAS_UNIDADES', stockTienda: null, enCuarentena: false },
+    })
+
+    const lectura = await resolverCodigoBarras(catalogo, '7751234567890')
+
+    expect(api.get).toHaveBeenCalledWith('/api/v1/retail/catalogo/codigo-barras/7751234567890')
+    expect(lectura?.variant).toMatchObject({ sku: 'POLTEC-L-BLA', barcode: '7751234567890' })
+  })
+
+  it('no consulta si lo leído no es un código de barras', async () => {
+    expect(await resolverCodigoBarras(catalogo, 'POLTEC')).toBeNull()
+    expect(api.get).not.toHaveBeenCalled()
+  })
+
+  it('un código desconocido (404) no agrega nada', async () => {
+    vi.mocked(api.get).mockRejectedValueOnce(new Error('404'))
+    expect(await resolverCodigoBarras(catalogo, '7750000000000')).toBeNull()
   })
 })
