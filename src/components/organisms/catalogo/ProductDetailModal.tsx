@@ -96,7 +96,7 @@ export default function ProductDetailModal({
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
               {product.category}
             </p>
-            <h2 id="titulo-ficha" className="font-heading mt-1 text-2xl text-[var(--color-text-primary)]">
+            <h2 id="titulo-ficha" className="font-heading mt-1 text-2xl uppercase text-[var(--color-text-primary)]">
               {product.name}
             </h2>
           </div>
