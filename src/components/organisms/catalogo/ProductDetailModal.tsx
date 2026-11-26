@@ -69,8 +69,11 @@ export default function ProductDetailModal({
 
   const sizesOfColor = variants.filter((variant) => variant.color === color)
   const selected: Variant | undefined = sizesOfColor.find((variant) => variant.size === size)
-  const stock = selected ? getStockStatus(selected.stock) : null
-  const canSell = selected ? stock!.isAvailable : variants.length === 0 && product.stock > 0
+  const stock = selected ? getStockStatus(selected) : null
+  // G6 cotiza por SKU: se muestra el precio de la talla elegida y, sin precio vigente, no se vende.
+  const precio = selected?.price ?? product.price
+  const conPrecio = precio > 0
+  const canSell = conPrecio && (selected ? stock!.isAvailable : variants.length === 0 && getStockStatus(product).isAvailable)
 
   const changeColor = (next: string) => {
     setColor(next)
@@ -143,13 +146,15 @@ export default function ProductDetailModal({
                 <div className="flex flex-wrap gap-2" onKeyDown={moveFocus}>
                   {sizesOfColor.map((variant) => {
                     const agotada = variant.stock <= 0
+                    const motivo =
+                      variant.disponibilidad === 'SOLO_ALMACEN_CENTRAL' ? 'Solo en almacén central' : 'Agotada en esta tienda'
                     return (
                       <button
                         key={variant.sku}
                         type="button"
                         disabled={agotada}
                         aria-pressed={variant.size === size}
-                        title={agotada ? 'Agotada en esta tienda' : `SKU ${variant.sku}`}
+                        title={agotada ? motivo : `SKU ${variant.sku}`}
                         onClick={() => setSize(variant.size)}
                         className={optionStyle(variant.size === size, agotada)}
                       >
@@ -163,15 +168,24 @@ export default function ProductDetailModal({
 
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-2xl font-bold text-[var(--color-text-primary)]">
-                {formatCurrency(product.price)}
+                {conPrecio ? formatCurrency(precio) : 'Precio por confirmar'}
               </span>
-              {selected ? <StockBadge stock={selected.stock} /> : null}
+              {selected ? (
+                <StockBadge stock={selected.stock} disponibilidad={selected.disponibilidad} stockConocido={selected.stockConocido} />
+              ) : variants.length === 0 ? (
+                <StockBadge stock={product.stock} disponibilidad={product.disponibilidad} stockConocido={product.stockConocido} />
+              ) : null}
             </div>
 
             {selected ? (
               <p className="text-sm text-[var(--color-text-secondary)]">
-                SKU <span className="font-semibold tabular-nums">{selected.sku}</span> · código{' '}
-                <span className="tabular-nums">{selected.barcode}</span>
+                SKU <span className="font-semibold tabular-nums">{selected.sku}</span>
+                {selected.barcode ? (
+                  <>
+                    {' '}
+                    · código <span className="tabular-nums">{selected.barcode}</span>
+                  </>
+                ) : null}
               </p>
             ) : variants.length > 0 ? (
               <p className="text-sm text-[var(--color-text-secondary)]">
@@ -189,7 +203,15 @@ export default function ProductDetailModal({
               }}
             >
               <IconPlus size={16} aria-hidden="true" />
-              {canSell ? 'Agregar al carrito' : stock ? stock.label : 'Elige una variante'}
+              {canSell
+                ? 'Agregar al carrito'
+                : !conPrecio
+                  ? 'Sin precio vigente'
+                  : stock
+                    ? stock.label
+                    : variants.length > 0
+                      ? 'Elige una variante'
+                      : 'No disponible'}
             </Button>
           </div>
         </div>
