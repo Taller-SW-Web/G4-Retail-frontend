@@ -9,6 +9,32 @@ import type { EventoEstado } from '../api/pedidoApi'
 /** DNI de 8 dígitos o RUC de 11, igual que el contrato (§5.6). */
 export const esDocumentoValido = (documento: string) => /^(\d{8}|\d{11})$/.test(documento.trim())
 
+/** `DNI 72345678` o `RUC 20123456789`, según la longitud del documento. */
+export const etiquetaDocumento = (documento: string) => {
+  const limpio = documento.trim()
+  return `${limpio.length === 11 ? 'RUC' : 'DNI'} ${limpio}`
+}
+
+/**
+ * RF-16-DOC: historial del más reciente al más antiguo. El backend ya lo entrega así (§5.6); se
+ * vuelve a ordenar por si Ventas agrega pedidos desordenados en otra página. Las fechas inválidas
+ * van al final.
+ */
+export function ordenarDelMasReciente<T extends { fechaCreacion: string }>(pedidos: T[]): T[] {
+  const instante = (iso: string) => {
+    const valor = Date.parse(iso)
+    return Number.isNaN(valor) ? Number.NEGATIVE_INFINITY : valor
+  }
+  return [...pedidos].sort((a, b) => instante(b.fechaCreacion) - instante(a.fechaCreacion))
+}
+
+/** Cuántos pedidos hay por canal, para el resumen del historial del cliente. */
+export function pedidosPorCanal(pedidos: { canal: string }[]): { canal: string; cantidad: number }[] {
+  const conteo = new Map<string, number>()
+  pedidos.forEach(({ canal }) => conteo.set(canal, (conteo.get(canal) ?? 0) + 1))
+  return [...conteo].map(([canal, cantidad]) => ({ canal, cantidad }))
+}
+
 const ETIQUETAS_ESTADO: Record<string, string> = {
   CREADO: 'Creado',
   PAGADO: 'Pagado',
