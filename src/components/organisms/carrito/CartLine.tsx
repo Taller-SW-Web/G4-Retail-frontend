@@ -46,7 +46,7 @@ export default function CartLine({ item }: CartLineProps) {
         <button
           type="button"
           onClick={() => quitarProducto(item.product.id)}
-          className="rounded-lg p-1.5 text-[var(--color-text-secondary)] transition-colors hover:bg-red-50 hover:text-red-600"
+          className="rounded-lg p-1.5 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error)]"
           aria-label={`Eliminar ${item.product.name}`}
           title="Eliminar artículo"
         >
@@ -59,7 +59,7 @@ export default function CartLine({ item }: CartLineProps) {
           <button
             type="button"
             onClick={() => disminuirCantidad(item.product.id)}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-[var(--color-text-primary)] shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-[var(--color-text-primary)] shadow-xs transition-colors hover:bg-[var(--color-surface-cloud-subtle)] disabled:opacity-40"
             aria-label={`Disminuir cantidad de ${item.product.name}`}
           >
             <IconMinus size={14} aria-hidden />
@@ -87,7 +87,7 @@ export default function CartLine({ item }: CartLineProps) {
             type="button"
             onClick={() => aumentarCantidad(item.product.id)}
             disabled={enMaximoStock}
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-[var(--color-text-primary)] shadow-xs transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-[var(--color-text-primary)] shadow-xs transition-colors hover:bg-[var(--color-surface-cloud-subtle)] disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={`Aumentar cantidad de ${item.product.name}`}
           >
             <IconPlus size={14} aria-hidden />
