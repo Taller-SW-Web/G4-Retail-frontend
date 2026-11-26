@@ -1,7 +1,8 @@
 /**
  * Consulta y seguimiento histórico de pedidos (F6 · RF-16, RF-17).
  *
- * Rutas del contrato (`api-contracts.md` §5.6): `GET /retail/pedidos` y `GET /retail/pedidos/{pedidoId}`.
+ * Rutas del contrato (`api-contracts.md` §5.6): `GET /retail/pedidos` (por `codigoPedido` o, para
+ * RF-16-DOC, por `documentoCliente`) y `GET /retail/pedidos/{pedidoId}`.
  * Con `VITE_USE_MOCKS=true` responde con pedidos de ejemplo y las mismas reglas que el backend.
  */
 import { api, ApiError, USA_MOCKS } from './http'
@@ -144,7 +145,9 @@ const linea = (sku: string, nombre: string, cantidad: number, precio: number): L
 const JUAN = { nombre: 'Juan Pérez Torres', tipoDocumento: 'DNI', numeroDocumento: '72345678' }
 const MARIA = { nombre: 'María González', tipoDocumento: 'DNI', numeroDocumento: '45678912' }
 
-// Simulan ventas de la sesión actual: el backend solo busca por DNI/RUC lo vendido desde que arrancó.
+const DEPORTES_ANDES = { nombre: 'Deportes Andes S.A.C.', tipoDocumento: 'RUC', numeroDocumento: '20601234567' }
+
+// Historial de ejemplo en todos los canales (RF-16-DOC, contrato §5.6).
 const PEDIDOS_EJEMPLO: DetallePedido[] = [
   ejemplo('PED-2026-00412', 'RETAIL', JUAN, 'TIENDA', 'TIENDA-MIRAFLORES', 2,
     [linea('ZAPVEL-41-AZU', 'Zapatillas Velocity X', 1, 249), linea('TOPPRO-M-NEG', 'Top de compresión Pro', 2, 89)],
@@ -158,6 +161,12 @@ const PEDIDOS_EJEMPLO: DetallePedido[] = [
   ejemplo('PED-2026-00405', 'MARKETPLACE', MARIA, 'RECOJO_TIENDA', 'TIENDA-MIRAFLORES', 20,
     [linea('TOPPRO-M-NEG', 'Top de compresión Pro', 1, 89)],
     ['CREADO', 'PAGADO', 'EN_PREPARACION']),
+  ejemplo('PED-2026-00421', 'RETAIL', DEPORTES_ANDES, 'TIENDA', 'TIENDA-MIRAFLORES', 5,
+    [linea('ZAPVEL-41-AZU', 'Zapatillas Velocity X', 4, 249)],
+    ['PAGADO', 'ENTREGADO']),
+  ejemplo('PED-2026-00350', 'MARKETPLACE', DEPORTES_ANDES, 'DOMICILIO', undefined, 24 * 9,
+    [linea('TOPPRO-M-NEG', 'Top de compresión Pro', 10, 89)],
+    ['CREADO', 'PAGADO', 'EN_PREPARACION', 'DESPACHADO', 'ENTREGADO']),
 ]
 
 const noEncontrado = () =>
