@@ -33,7 +33,7 @@ jobs:
     name: E2E POS (Success and 409 Rejection)
     needs: quality
     if: ${{ needs.quality.result == 'success' && github.base_ref == 'main' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
