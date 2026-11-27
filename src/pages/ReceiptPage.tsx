@@ -42,7 +42,7 @@ export default function ReceiptPage() {
 
   function nuevaVenta() {
     sessionStorage.removeItem('f5_ultima_venta')
-    navigate('/pos')
+    void navigate('/pos')
   }
 
   return (
