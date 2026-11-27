@@ -28,6 +28,14 @@ const PRENDAS: IncidenciaCuarentena[] = [
     fechaReporte: '2026-11-23T15:00:00Z',
     estado: 'EN_CUARENTENA',
   },
+  {
+    incidenciaId: 'inc-3',
+    sku: 'SHORUN-S-NEG',
+    nombreProducto: 'Short running S negro',
+    tipoFalla: 'DEFECTO_FABRICA',
+    fechaReporte: '2026-11-26T15:00:00Z',
+    estado: 'PENDIENTE_REPORTE',
+  },
 ]
 
 const estadoInicial = useAuthStore.getState()
@@ -71,7 +79,15 @@ describe('ActaGeneratorView (RF-34)', () => {
     expect(emitirActa).not.toHaveBeenCalled()
   })
 
-  it('la casilla general selecciona todas las prendas', async () => {
+  it('una prenda que Inventario aún no aceptó se muestra, pero no se puede incluir', async () => {
+    render(<ActaGeneratorView />)
+
+    const casilla = (await screen.findByLabelText('Incluir SHORUN-S-NEG')) as HTMLInputElement
+    expect(casilla.disabled).toBe(true)
+    expect(screen.getByText('Esperando confirmación de Inventario')).toBeTruthy()
+  })
+
+  it('la casilla general selecciona todas las prendas que pueden entrar al acta', async () => {
     render(<ActaGeneratorView />)
     await screen.findByLabelText('Incluir POLTEC-M-BLA')
 
@@ -83,8 +99,21 @@ describe('ActaGeneratorView (RF-34)', () => {
   it('CA-RF34-01: al confirmar emite el acta, retira las prendas de la bandeja y muestra el acta', async () => {
     vi.mocked(emitirActa).mockResolvedValue({
       actaNumero: 'ACTA-MERMA-2026-0012',
+      fechaEmision: '2026-11-28T18:00:00Z',
+      tiendaId: 'TIENDA-MIRAFLORES',
+      tipoDestino: 'BAJA_DEFINITIVA',
+      observaciones: 'Mancha permanente',
+      supervisor: { id: 'bbbbbbbb-0000-0000-0000-000000000002', nombre: 'Rosa Quispe' },
       totalPrendas: 1,
-      incidencias: [{ incidenciaId: 'inc-1', estado: 'DERIVADO_ALMACEN' }],
+      incidencias: [
+        {
+          incidenciaId: 'inc-1',
+          sku: 'POLTEC-M-BLA',
+          tipoFalla: 'MANCHADO_PROBADOR',
+          detalleObservacion: 'Mancha de maquillaje en el cuello',
+          estado: 'BAJA_DEFINITIVA',
+        },
+      ],
     })
     render(<ActaGeneratorView />)
     fireEvent.click(await screen.findByLabelText('Incluir POLTEC-M-BLA'))
@@ -100,7 +129,8 @@ describe('ActaGeneratorView (RF-34)', () => {
       tipoDestino: 'BAJA_DEFINITIVA',
       observaciones: 'Mancha permanente',
     })
-    expect(screen.getByText('SUP-001', { selector: 'dd' })).toBeTruthy()
+    expect(screen.getByText('Rosa Quispe', { selector: 'dd' })).toBeTruthy()
+    expect(screen.getByText(/Las prendas pasaron a BAJA_DEFINITIVA/)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Volver a la cuarentena' }))
     await waitFor(() => expect(screen.queryByLabelText('Incluir POLTEC-M-BLA')).toBeNull())

@@ -29,23 +29,47 @@ export interface EmisionActa {
   observaciones?: string
 }
 
-export interface ActaEmitida {
-  actaNumero: string
-  totalPrendas: number
-  incidencias: { incidenciaId: string; estado: EstadoIncidencia }[]
-  /** El contrato lo incluye, pero el acta se imprime desde el POS: puede no llegar. */
-  urlPdf?: string | null
-  /** Propuesto al PO para la impresión del acta. Si no llega, se usa la hora en que se emitió. */
-  fechaEmision?: string
+/** Prenda incluida en el acta, con lo necesario para imprimirla. */
+export interface PrendaActa {
+  incidenciaId: string
+  sku: string
+  tipoFalla: TipoFalla
+  detalleObservacion: string
+  estado: EstadoIncidencia
 }
 
-/** RF-33: prendas en cuarentena de la tienda del perfil. */
+/** Respuesta 201 del contrato v0.5.4: trae todo lo que se imprime. Retail no genera PDF. */
+export interface ActaEmitida {
+  actaNumero: string
+  fechaEmision: string
+  tiendaId: string
+  tipoDestino: TipoDestino
+  observaciones: string | null
+  supervisor: { id: string; nombre: string }
+  totalPrendas: number
+  incidencias: PrendaActa[]
+}
+
+/**
+ * Solo entran al acta las prendas que Inventario ya aceptó (`EN_CUARENTENA`). Las que siguen en
+ * `PENDIENTE_REPORTE` también bloquean la venta, pero todavía no existen en Inventario.
+ */
+export const puedeEntrarAlActa = (prenda: IncidenciaCuarentena) => prenda.estado === 'EN_CUARENTENA'
+
+/** Estado que toma cada prenda según el destino del acta (decisión del PO, 26/11). */
+export const estadoSegunDestino = (destino: TipoDestino): EstadoIncidencia =>
+  destino === 'DEVOLUCION_CENTRAL' ? 'DERIVADO_ALMACEN' : 'BAJA_DEFINITIVA'
+
+/** RF-33: prendas en cuarentena activa (`EN_CUARENTENA` y `PENDIENTE_REPORTE`) de la tienda del perfil. */
 export function listarCuarentena(): Promise<IncidenciaCuarentena[]> {
-  if (USA_MOCKS) return Promise.resolve(cuarentenaSimulada.filter((p) => p.estado === 'EN_CUARENTENA'))
+  if (USA_MOCKS)
+    return Promise.resolve(
+      cuarentenaSimulada.filter((p) => p.estado === 'EN_CUARENTENA' || p.estado === 'PENDIENTE_REPORTE'),
+    )
   return api.get<IncidenciaCuarentena[]>('/api/v1/retail/inventario/cuarentena')
 }
 
-/** RF-34: emite el acta y pasa las prendas a `DERIVADO_ALMACEN`. Solo SUPERVISOR. */
+/** RF-34: emite el acta y saca las prendas de la cuarentena según el destino. Solo SUPERVISOR. */
 export function emitirActa(emision: EmisionActa): Promise<ActaEmitida> {
   if (USA_MOCKS) return emitirActaSimulada(emision)
   return api.post<ActaEmitida>('/api/v1/retail/inventario/actas-merma', emision)
@@ -78,28 +102,54 @@ const cuarentenaSimulada: IncidenciaCuarentena[] = [
     fechaReporte: new Date().toISOString(),
     estado: 'EN_CUARENTENA',
   },
+  {
+    incidenciaId: 'inc-0004',
+    sku: 'SHORUN-S-NEG',
+    nombreProducto: 'Short running S negro',
+    tipoFalla: 'DEFECTO_FABRICA',
+    fechaReporte: new Date().toISOString(),
+    estado: 'PENDIENTE_REPORTE',
+  },
 ]
+
+const detalleSimulado: Record<string, string> = {
+  'inc-0001': 'Mancha de maquillaje en el cuello',
+  'inc-0002': 'Costura abierta en el talón',
+  'inc-0003': 'No aparece en el almacén de la tienda',
+  'inc-0004': 'Cierre defectuoso',
+}
 
 let correlativoSimulado = 0
 
-async function emitirActaSimulada({ incidenciasIds }: EmisionActa): Promise<ActaEmitida> {
+async function emitirActaSimulada({ incidenciasIds, tipoDestino, observaciones }: EmisionActa): Promise<ActaEmitida> {
   if (incidenciasIds.length === 0) {
     throw new ApiError(400, { code: 'LISTA_VACIA', detail: 'Selecciona al menos una prenda' })
   }
   const prendas = incidenciasIds.map((id) => cuarentenaSimulada.find((p) => p.incidenciaId === id))
-  if (prendas.some((p) => !p || p.estado !== 'EN_CUARENTENA')) {
+  if (prendas.some((p) => !p || !puedeEntrarAlActa(p))) {
     throw new ApiError(409, {
       code: 'INCIDENCIA_NO_EN_CUARENTENA',
       detail: 'Una de las prendas ya no está en cuarentena',
     })
   }
-  prendas.forEach((p) => (p!.estado = 'DERIVADO_ALMACEN'))
+  const estado = estadoSegunDestino(tipoDestino)
+  prendas.forEach((p) => (p!.estado = estado))
   correlativoSimulado += 1
   const fecha = new Date()
   return {
     actaNumero: `ACTA-MERMA-${fecha.getFullYear()}-${String(correlativoSimulado).padStart(4, '0')}`,
-    totalPrendas: prendas.length,
-    incidencias: incidenciasIds.map((incidenciaId) => ({ incidenciaId, estado: 'DERIVADO_ALMACEN' })),
     fechaEmision: fecha.toISOString(),
+    tiendaId: 'TIENDA-MIRAFLORES',
+    tipoDestino,
+    observaciones: observaciones ?? null,
+    supervisor: { id: 'bbbbbbbb-0000-0000-0000-000000000002', nombre: 'Supervisor de demo' },
+    totalPrendas: prendas.length,
+    incidencias: prendas.map((p) => ({
+      incidenciaId: p!.incidenciaId,
+      sku: p!.sku,
+      tipoFalla: p!.tipoFalla,
+      detalleObservacion: detalleSimulado[p!.incidenciaId] ?? '',
+      estado,
+    })),
   }
 }

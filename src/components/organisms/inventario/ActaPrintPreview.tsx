@@ -1,37 +1,23 @@
 import { IconPrinter } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
-import type { ActaEmitida, IncidenciaCuarentena, TipoDestino } from '../../../api/actasMermaApi'
+import type { ActaEmitida } from '../../../api/actasMermaApi'
 import { ETIQUETA_FALLA, etiquetaDestino } from '../../../lib/actaMerma'
-import { formatFecha, formatFechaHora } from '../../../lib/format'
+import { formatFechaHora } from '../../../lib/format'
 
 interface ActaPrintPreviewProps {
   acta: ActaEmitida
-  /** Prendas incluidas en el acta, con el detalle que se imprime. */
-  prendas: IncidenciaCuarentena[]
-  tipoDestino: TipoDestino
-  observaciones?: string
-  /** Código del supervisor que emite el acta, por ejemplo `SUP-001`. */
-  supervisor: string
-  tiendaId: string
-  /** Hora de emisión si la respuesta no la trae. */
-  emitidaEn: string
+  /** Nombre de cada prenda por `incidenciaId`, tomado de la bandeja. La respuesta solo trae el SKU. */
+  nombres?: Record<string, string>
 }
 
 /**
  * Acta oficial de discrepancia o merma de tienda, lista para imprimir (F12 · RF-34, CA-RF34-03).
  *
- * Se imprime en A4 para adjuntarla al bulto que sale hacia el almacén central, con las casillas de
- * firma del supervisor y de quien recibe. Usa `print-area`: al imprimir, solo sale el acta.
+ * Todo lo que se imprime sale de la respuesta del acta (contrato §5.12): Retail no genera PDF. Va en
+ * A4 para adjuntarla al bulto, con las casillas de firma del supervisor y de quien recibe. Usa
+ * `print-area`: al imprimir, solo sale el acta.
  */
-export default function ActaPrintPreview({
-  acta,
-  prendas,
-  tipoDestino,
-  observaciones,
-  supervisor,
-  tiendaId,
-  emitidaEn,
-}: ActaPrintPreviewProps) {
+export default function ActaPrintPreview({ acta, nombres = {} }: ActaPrintPreviewProps) {
   return (
     <div className="flex flex-col gap-4">
       <article
@@ -45,24 +31,22 @@ export default function ActaPrintPreview({
           </div>
           <div className="text-right">
             <p className="font-mono text-lg font-bold">{acta.actaNumero}</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">
-              Emitida {formatFechaHora(acta.fechaEmision ?? emitidaEn)}
-            </p>
+            <p className="text-xs text-[var(--color-text-secondary)]">Emitida {formatFechaHora(acta.fechaEmision)}</p>
           </div>
         </header>
 
         <dl className="grid grid-cols-1 gap-x-6 gap-y-1 py-4 sm:grid-cols-2">
           <div className="flex gap-2">
             <dt className="font-semibold">Tienda:</dt>
-            <dd>{tiendaId}</dd>
+            <dd>{acta.tiendaId}</dd>
           </div>
           <div className="flex gap-2">
             <dt className="font-semibold">Supervisor:</dt>
-            <dd>{supervisor}</dd>
+            <dd>{acta.supervisor.nombre}</dd>
           </div>
           <div className="flex gap-2 sm:col-span-2">
             <dt className="font-semibold">Destino:</dt>
-            <dd>{etiquetaDestino(tipoDestino)}</dd>
+            <dd>{etiquetaDestino(acta.tipoDestino)}</dd>
           </div>
         </dl>
 
@@ -71,19 +55,24 @@ export default function ActaPrintPreview({
             <tr className="border-y border-[var(--color-border-default)] uppercase">
               <th className="py-2 pr-2">#</th>
               <th className="py-2 pr-2">SKU</th>
-              <th className="py-2 pr-2">Prenda</th>
               <th className="py-2 pr-2">Motivo</th>
-              <th className="py-2">Reportada</th>
+              <th className="py-2 pr-2">Detalle</th>
+              <th className="py-2">Estado</th>
             </tr>
           </thead>
           <tbody>
-            {prendas.map((prenda, indice) => (
-              <tr key={prenda.incidenciaId} className="border-b border-[var(--color-border-default)]">
+            {acta.incidencias.map((prenda, indice) => (
+              <tr key={prenda.incidenciaId} className="border-b border-[var(--color-border-default)] align-top">
                 <td className="py-2 pr-2">{indice + 1}</td>
-                <td className="py-2 pr-2 font-mono">{prenda.sku}</td>
-                <td className="py-2 pr-2">{prenda.nombreProducto}</td>
+                <td className="py-2 pr-2">
+                  <span className="font-mono">{prenda.sku}</span>
+                  {nombres[prenda.incidenciaId] && (
+                    <span className="block text-[var(--color-text-secondary)]">{nombres[prenda.incidenciaId]}</span>
+                  )}
+                </td>
                 <td className="py-2 pr-2">{ETIQUETA_FALLA[prenda.tipoFalla]}</td>
-                <td className="py-2">{formatFecha(prenda.fechaReporte)}</td>
+                <td className="py-2 pr-2">{prenda.detalleObservacion}</td>
+                <td className="py-2 font-mono">{prenda.estado}</td>
               </tr>
             ))}
           </tbody>
@@ -91,10 +80,10 @@ export default function ActaPrintPreview({
 
         <p className="pt-3 text-right font-semibold">Total de prendas: {acta.totalPrendas}</p>
 
-        {observaciones && (
+        {acta.observaciones && (
           <p className="pt-2">
             <span className="font-semibold">Observaciones: </span>
-            {observaciones}
+            {acta.observaciones}
           </p>
         )}
 
@@ -107,7 +96,7 @@ export default function ActaPrintPreview({
           <div className="border-t border-[var(--color-text-primary)] pt-2">
             Firma del supervisor de tienda
             <br />
-            {supervisor}
+            {acta.supervisor.nombre}
           </div>
           <div className="border-t border-[var(--color-text-primary)] pt-2">
             Firma de quien recibe en almacén central

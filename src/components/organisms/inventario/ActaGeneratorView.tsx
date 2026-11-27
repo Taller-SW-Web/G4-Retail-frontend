@@ -9,21 +9,18 @@ import { ApiError } from '../../../api/http'
 import {
   emitirActa,
   listarCuarentena,
+  puedeEntrarAlActa,
   type ActaEmitida,
   type IncidenciaCuarentena,
   type TipoDestino,
 } from '../../../api/actasMermaApi'
 import { DESTINOS, ETIQUETA_FALLA, etiquetaDestino, motivoParaNoEmitir } from '../../../lib/actaMerma'
 import { formatFecha } from '../../../lib/format'
-import { useAuthStore } from '../../../store/authStore'
 
-/** Lo que se necesita para imprimir el acta recién emitida. */
+/** El acta recién emitida y el nombre de sus prendas, para imprimirla. */
 interface ActaParaImprimir {
   acta: ActaEmitida
-  prendas: IncidenciaCuarentena[]
-  tipoDestino: TipoDestino
-  observaciones: string
-  emitidaEn: string
+  nombres: Record<string, string>
 }
 
 /**
@@ -31,9 +28,10 @@ interface ActaParaImprimir {
  *
  * El supervisor marca las prendas en cuarentena que salen de la tienda, elige su destino y emite el
  * acta. Al emitirla, esas prendas salen de la bandeja (CA-RF34-01) y aparece el acta para imprimir.
+ * Las prendas que Inventario todavía no aceptó (`PENDIENTE_REPORTE`) se muestran, pero no se pueden
+ * marcar (contrato §5.12).
  */
 export default function ActaGeneratorView() {
-  const perfil = useAuthStore((estado) => estado.perfil)
   const [prendas, setPrendas] = useState<IncidenciaCuarentena[]>([])
   const [cargando, setCargando] = useState(true)
   const [seleccionadas, setSeleccionadas] = useState<string[]>([])
@@ -57,8 +55,9 @@ export default function ActaGeneratorView() {
   const alternar = (id: string) =>
     setSeleccionadas((actual) => (actual.includes(id) ? actual.filter((x) => x !== id) : [...actual, id]))
 
-  const todasMarcadas = prendas.length > 0 && seleccionadas.length === prendas.length
-  const alternarTodas = () => setSeleccionadas(todasMarcadas ? [] : prendas.map((p) => p.incidenciaId))
+  const elegibles = prendas.filter(puedeEntrarAlActa)
+  const todasMarcadas = elegibles.length > 0 && seleccionadas.length === elegibles.length
+  const alternarTodas = () => setSeleccionadas(todasMarcadas ? [] : elegibles.map((p) => p.incidenciaId))
 
   const pedirConfirmacion = () => {
     const motivo = motivoParaNoEmitir(seleccionadas, destino)
@@ -79,10 +78,7 @@ export default function ActaGeneratorView() {
       })
       setEmitida({
         acta,
-        prendas: prendas.filter((p) => seleccionadas.includes(p.incidenciaId)),
-        tipoDestino: destino,
-        observaciones: notas,
-        emitidaEn: new Date().toISOString(),
+        nombres: Object.fromEntries(prendas.map((p) => [p.incidenciaId, p.nombreProducto])),
       })
       setPrendas((actual) => actual.filter((p) => !seleccionadas.includes(p.incidenciaId)))
       setSeleccionadas([])
@@ -100,17 +96,9 @@ export default function ActaGeneratorView() {
     return (
       <section aria-label="Acta emitida" className="flex flex-col gap-4">
         <Alert tono="success" title={`Acta ${emitida.acta.actaNumero} emitida`}>
-          Las prendas pasaron a {emitida.acta.incidencias[0]?.estado ?? 'DERIVADO_ALMACEN'} y salieron de la cuarentena.
+          Las prendas pasaron a {emitida.acta.incidencias[0]?.estado} y salieron de la cuarentena.
         </Alert>
-        <ActaPrintPreview
-          acta={emitida.acta}
-          prendas={emitida.prendas}
-          tipoDestino={emitida.tipoDestino}
-          observaciones={emitida.observaciones}
-          supervisor={perfil?.codigoVendedor ?? '—'}
-          tiendaId={perfil?.tiendaId ?? '—'}
-          emitidaEn={emitida.emitidaEn}
-        />
+        <ActaPrintPreview acta={emitida.acta} nombres={emitida.nombres} />
         <Button variant="secondary" className="self-start" onClick={() => setEmitida(null)}>
           Volver a la cuarentena
         </Button>
@@ -141,6 +129,7 @@ export default function ActaGeneratorView() {
                     type="checkbox"
                     aria-label="Seleccionar todas"
                     checked={todasMarcadas}
+                    disabled={elegibles.length === 0}
                     onChange={alternarTodas}
                     className="h-4 w-4"
                   />
@@ -149,6 +138,7 @@ export default function ActaGeneratorView() {
                 <th className="p-3">Prenda</th>
                 <th className="p-3">Motivo</th>
                 <th className="p-3">Reportada</th>
+                <th className="p-3">Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -159,6 +149,7 @@ export default function ActaGeneratorView() {
                       type="checkbox"
                       aria-label={`Incluir ${prenda.sku}`}
                       checked={seleccionadas.includes(prenda.incidenciaId)}
+                      disabled={!puedeEntrarAlActa(prenda)}
                       onChange={() => alternar(prenda.incidenciaId)}
                       className="h-4 w-4"
                     />
@@ -167,6 +158,9 @@ export default function ActaGeneratorView() {
                   <td className="p-3">{prenda.nombreProducto}</td>
                   <td className="p-3">{ETIQUETA_FALLA[prenda.tipoFalla]}</td>
                   <td className="p-3">{formatFecha(prenda.fechaReporte)}</td>
+                  <td className="p-3 text-xs">
+                    {puedeEntrarAlActa(prenda) ? 'En cuarentena' : 'Esperando confirmación de Inventario'}
+                  </td>
                 </tr>
               ))}
             </tbody>
