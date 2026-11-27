@@ -22,11 +22,6 @@ jobs:
         run: npm run test:ci
       - name: Compilación de producción
         run: npm run build
-      - name: Auditoría completa del lockfile (incluye herramientas de build)
-        if: ${{ !cancelled() }}
-        run: |
-          mkdir -p reports
-          npm audit --audit-level=high --json > reports/npm-audit.json
       - name: Publicar evidencia incluso ante fallos
         if: always()
         uses: actions/upload-artifact@v4
@@ -35,3 +30,21 @@ jobs:
           path: reports/
           if-no-files-found: error
           retention-days: 30
+  e2e:
+    needs: pruebas
+    if: ${{ github.event_name != 'pull_request' || github.base_ref == 'main' }}
+    uses: ./.github/workflows/workflow-e2e.yml
+  evidence-gate:
+    needs: [pruebas, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          EXTENDED: ${{ github.event_name != 'pull_request' || github.base_ref == 'main' }}
+        with:
+          script: |
+            const n = JSON.parse(process.env.RESULTS);
+            if (n.pruebas.result !== 'success' || (process.env.EXTENDED === 'true' && n.e2e.result !== 'success'))
+              core.setFailed('Pruebas obligatorias incompletas.');

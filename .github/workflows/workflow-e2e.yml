@@ -1,0 +1,49 @@
+name: E2E POS con API controlada
+on:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  venta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci
+      - name: Construir candidato para API interceptada
+        env:
+          VITE_USE_MOCKS: 'false'
+          VITE_API_URL: http://127.0.0.1:4173
+        run: npm run build
+      - name: Instalar navegador de prueba aislado
+        run: |
+          npm install --prefix "$RUNNER_TEMP/playwright" --save-exact playwright@1.58.2
+          node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Venta confirmada y rechazo de stock
+        env:
+          PLAYWRIGHT_ROOT: ${{ runner.temp }}/playwright
+        run: |
+          set -euo pipefail
+          npm run preview -- --host 127.0.0.1 --port 4173 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          ready=false
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then ready=true; break; fi
+            sleep 1
+          done
+          test "$ready" = true
+          node e2e/venta.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-pos-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/e2e/
+          if-no-files-found: error
