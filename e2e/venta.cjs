@@ -35,8 +35,10 @@ async function main() {
           if (scenario === 'rechazo') return respond({status:409,code:'STOCK_INSUFICIENTE',detail:'Stock insuficiente de prueba'},409);
           return respond({pedidoId:'PED-TEST',pago:{medioPago:'EFECTIVO',montoRecibido:59.9,vuelto:0},comprobante:{tipo:'BOLETA',serie:'BTEST',correlativo:'00000001',subtotal:50.76,igv:9.14,total:59.9,fechaEmision:'2026-11-26T12:00:00Z',qr:'fixture'},items:[{sku:'SKU-TEST',cantidad:1,precioFinal:59.9}]});
         }
-        // Ninguna API externa ni imagen remota sale a la red.
-        if (request.resourceType() !== 'image') unexpected.push(`${request.method()} ${url.pathname}`);
+        // Ninguna API externa ni recurso remoto (fuentes/hojas de estilo/imágenes) sale a la red.
+        if (!['image', 'stylesheet', 'font'].includes(request.resourceType())) {
+          unexpected.push(`${request.method()} ${url.pathname}`);
+        }
         return route.abort();
       });
       try {
@@ -60,6 +62,7 @@ async function main() {
         assert.deepEqual(unexpected,[],'No debe haber APIs no cubiertas');
         results.push({id:`CP-F5-${scenario}`,status:'PASS'});
       } catch (error) {
+        console.error(`[${scenario}] FAIL:`, error.message);
         results.push({id:`CP-F5-${scenario}`,status:'FAIL',error:error.message});
         await page.screenshot({path:path.join(output,`${scenario}.png`)});
       } finally {
