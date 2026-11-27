@@ -1,10 +1,10 @@
+# Wrapper de CD: develop solo verifica; main valida todo y despliega/publica solo con gate GO.
+# La orquestacion completa vive en devsecops-templates/workflow-deploy.yml.
 name: Production Deploy
 run-name: CD | ${{ inputs.rollback && 'Rollback' || (github.ref == 'refs/heads/main' && 'Production Release' || 'Develop Verification') }}
 'on':
   push:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
   workflow_dispatch:
     inputs:
       rollback:
@@ -24,77 +24,19 @@ concurrency:
   group: cd-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  quality:
-    name: Security Analysis and Build
-    if: ${{ !inputs.rollback }}
-    uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-pr-analysis.yml@main
+  delivery:
+    name: Delivery
+    uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-deploy.yml@main
     with:
       component_name: g4-retail-frontend
       technology: node
       language: typescript
       sonar_host_url: ${{ vars.SONAR_HOST_URL }}
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-  e2e:
-    name: E2E POS (Success and 409 Rejection)
-    needs: quality
-    if: ${{ !inputs.rollback && github.ref == 'refs/heads/main' && needs.quality.result == 'success' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.22.2'
-          cache: npm
-      - run: npm ci
-      - name: Build candidate for intercepted API
-        env:
-          VITE_USE_MOCKS: 'false'
-          VITE_API_URL: http://127.0.0.1:4173
-        run: npm run build
-      - name: Install isolated Playwright Chromium
-        run: |
-          npm install --prefix "$RUNNER_TEMP/playwright" --save-exact playwright@1.58.2
-          node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
-      - name: Run POS E2E scenarios
-        env:
-          PLAYWRIGHT_ROOT: ${{ runner.temp }}/playwright
-        run: |
-          set -euo pipefail
-          npm run preview -- --host 127.0.0.1 --port 4173 &
-          pid=$!
-          trap 'kill "$pid" 2>/dev/null || true' EXIT
-          ready=false
-          for i in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then ready=true; break; fi
-            sleep 1
-          done
-          test "$ready" = true
-          node e2e/venta.cjs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: e2e-pos-${{ github.run_attempt }}
-          path: reports/e2e/
-          if-no-files-found: error
-          retention-days: 30
-  delivery:
-    needs: [quality, e2e]
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (inputs.rollback || (needs.quality.result == 'success' && needs.e2e.result == 'success')) }}
-    name: Production Deploy and SemVer Release
-    uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-deploy.yml@main
-    with:
-      component_name: g4-retail-frontend
-      technology: node
-      sonar_host_url: ${{ vars.SONAR_HOST_URL }}
       rollback: ${{ inputs.rollback || false }}
-      skip_quality: true
       version_override: ${{ inputs.version_override || '' }}
       release_tag: ${{ inputs.rollback && github.ref_type == 'tag' && github.ref_name || '' }}
       healthcheck_url: ${{ vars.PRODUCTION_HEALTHCHECK_URL }}
+      e2e_script: e2e/venta.cjs
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       GH_TOKEN_G4: ${{ secrets.GH_TOKEN_G4 }}
