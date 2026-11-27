@@ -60,6 +60,53 @@ describe('DiscrepancyModal (F12 · RF-32)', () => {
     expect(screen.getByText('No encontramos esa etiqueta en el catálogo de la tienda')).toBeTruthy()
   })
 
+  it('pide la etiqueta si se busca con el campo vacío', async () => {
+    render(<DiscrepancyModal products={products} onClose={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }))
+
+    expect(screen.getByText('Escanea la etiqueta o escribe el SKU de la prenda')).toBeTruthy()
+  })
+
+  it('con el código del modelo (no de la talla) pide la etiqueta exacta', async () => {
+    render(<DiscrepancyModal products={products} onClose={() => {}} />)
+
+    await escanear('sku-1001')
+
+    expect(screen.getByText('Escanea la etiqueta de la talla y color exactos de la prenda')).toBeTruthy()
+    expect(screen.queryByLabelText('Prenda identificada')).toBeNull()
+  })
+
+  it('un artículo sin tallas se identifica por su código y se reporta con la foto', async () => {
+    render(<DiscrepancyModal products={products} onClose={() => {}} />)
+    await escanear('sku-1003')
+    expect(screen.getByLabelText('Prenda identificada').textContent).toContain('Mancuernas 12kg')
+    elegirFalla('Artículo extraviado / no ubicado')
+    escribirObservacion('No está en el anaquel')
+    fireEvent.change(screen.getByLabelText(/URL de la foto/), { target: { value: ' https://foto/1.jpg ' } })
+
+    await confirmar()
+
+    expect(reportarIncidencia.mock.calls[0][0]).toEqual({
+      sku: 'sku-1003',
+      tipoFalla: 'EXTRAVIO_NO_UBICADO',
+      detalleObservacion: 'No está en el anaquel',
+      evidenciaFotoUrl: 'https://foto/1.jpg',
+    })
+  })
+
+  it('un error inesperado muestra un mensaje genérico', async () => {
+    reportarIncidencia.mockRejectedValueOnce(new Error('boom'))
+    render(<DiscrepancyModal products={products} onClose={() => {}} />)
+    await escanear()
+    elegirFalla('Costura o tela dañada')
+    escribirObservacion('Costura abierta')
+
+    await confirmar()
+
+    expect(screen.getByText('No se pudo registrar la incidencia. Intenta nuevamente.')).toBeTruthy()
+  })
+
   it('CA-RF32-04: enviar sin tipo de falla muestra la validación y no reporta', async () => {
     render(<DiscrepancyModal products={products} onClose={() => {}} />)
     await escanear()

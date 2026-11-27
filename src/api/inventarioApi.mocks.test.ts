@@ -29,6 +29,15 @@ describe('inventarioApi con mocks (F12 · §5.12)', () => {
     expect(bandeja[0]).toMatchObject({ sku: 'ZAPVEL-38-NEG', nombreProducto: 'Zapatillas Velocity X (38 / Negro)' })
   })
 
+  it('nombra igual un artículo sin tallas y deja sin nombre un SKU que no está en el catálogo', async () => {
+    await esperar(reportarIncidencia({ ...datos, sku: 'sku-1003' }, 'clave-a'))
+    await esperar(reportarIncidencia({ ...datos, sku: 'NO-EXISTE' }, 'clave-b'))
+
+    const bandeja = await esperar(listarCuarentena())
+    expect(bandeja.find((i) => i.sku === 'sku-1003')?.nombreProducto).toBe('Mancuernas 12kg')
+    expect(bandeja.find((i) => i.sku === 'NO-EXISTE')?.nombreProducto).toBeNull()
+  })
+
   it('pasa a EN_CUARENTENA cuando Inventory acepta el reporte', async () => {
     await esperar(reportarIncidencia(datos, 'clave-1'))
     await vi.advanceTimersByTimeAsync(ACEPTACION_SIMULADA_MS)
