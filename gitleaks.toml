@@ -12,8 +12,12 @@ title = "G4-Retail-frontend Gitleaks Configuration"
 useDefault = true
 
 [allowlist]
-description = "Tokens JWT mock y fixtures de prueba unitaria en src/api/"
+description = "Tokens JWT mock, fixtures de prueba unitaria y falso positivo sessionStorage key"
+condition = "OR"
 paths = [
     '''src/api/mock/seguridad\.ts''',
     '''src/api/seguridad\.test\.ts''',
+]
+commits = [
+    "1ac2089f5e0a72c281cbab5ef73d5a189263dd3e",
 ]
