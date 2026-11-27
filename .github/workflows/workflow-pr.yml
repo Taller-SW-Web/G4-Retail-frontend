@@ -1,10 +1,11 @@
+# Wrapper de PR: toda la ejecucion CI/QA/DevSecOps vive en devsecops-templates y la seleccion
+# de controles (por evento, rama y tecnologia) en github-actions/analysis-validator.
 name: Pull Request Security Review
 run-name: CI | ${{ github.event.pull_request.head.ref || github.ref_name }} -> ${{ github.base_ref || github.ref_name }}
 'on':
   pull_request:
-    branches:
-    - develop
-    - main
+    branches: [develop, main]
+    types: [opened, synchronize, reopened, ready_for_review]
 permissions:
   contents: read
   actions: read
@@ -14,10 +15,7 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
-  evidence:
-    name: Evidencias de pruebas S14
-    uses: ./.github/workflows/workflow-evidence.yml
-  quality:
+  validation:
     name: Security Analysis
     uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-pr-analysis.yml@main
     with:
@@ -25,5 +23,6 @@ jobs:
       technology: node
       language: typescript
       sonar_host_url: ${{ vars.SONAR_HOST_URL }}
+      e2e_script: e2e/venta.cjs
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
