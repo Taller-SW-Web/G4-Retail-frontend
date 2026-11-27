@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   esDocumentoValido,
+  etiquetaDocumento,
+  ordenarDelMasReciente,
+  pedidosPorCanal,
   esPickup,
   etiquetaCanal,
   etiquetaEstado,
@@ -90,5 +93,27 @@ describe('pedidos (F6)', () => {
     expect(prendaDelCatalogo('ZAPVEL-41-AZU')).toMatchObject({ talla: '41', color: 'Azul' })
     expect(prendaDelCatalogo('ZAPVEL-41-AZU').imagen).toContain('https://')
     expect(prendaDelCatalogo('SKU-DESCONOCIDO')).toEqual({})
+  })
+
+  it('RF-16-DOC: etiqueta el documento como DNI o RUC según su longitud', () => {
+    expect(etiquetaDocumento('72345678')).toBe('DNI 72345678')
+    expect(etiquetaDocumento(' 20601234567 ')).toBe('RUC 20601234567')
+  })
+
+  it('RF-16-DOC: ordena del más reciente al más antiguo y deja al final las fechas inválidas', () => {
+    const pedidos = [
+      { pedidoId: 'A', fechaCreacion: '2026-11-01T08:00:00-05:00' },
+      { pedidoId: 'B', fechaCreacion: 'sin-fecha' },
+      { pedidoId: 'C', fechaCreacion: '2026-11-06T10:30:00-05:00' },
+    ]
+    expect(ordenarDelMasReciente(pedidos).map((p) => p.pedidoId)).toEqual(['C', 'A', 'B'])
+    expect(pedidos.map((p) => p.pedidoId)).toEqual(['A', 'B', 'C'])
+  })
+
+  it('RF-16-DOC: cuenta los pedidos por canal', () => {
+    expect(pedidosPorCanal([{ canal: 'RETAIL' }, { canal: 'MARKETPLACE' }, { canal: 'RETAIL' }])).toEqual([
+      { canal: 'RETAIL', cantidad: 2 },
+      { canal: 'MARKETPLACE', cantidad: 1 },
+    ])
   })
 })

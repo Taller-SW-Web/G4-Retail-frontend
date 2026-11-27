@@ -97,7 +97,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               {error && (
                 <p
                   role="alert"
-                  className="flex items-start gap-2 rounded-lg border border-[#E03131] bg-[#FFF5F5] px-4 py-3 text-sm text-[#E03131]"
+                  className="flex items-start gap-2 rounded-lg border border-[var(--color-error)] bg-[var(--color-error-bg)] px-4 py-3 text-sm text-[var(--color-error)]"
                 >
                   <IconAlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
                   <span>{error}</span>

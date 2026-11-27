@@ -157,7 +157,7 @@ export function HeldCartsModal({ onClose, onResumed }: HeldCartsModalProps) {
                     <button
                       type="button"
                       onClick={() => eliminarVentaEnEspera(carrito.carritoEsperaId)}
-                      className="rounded-lg p-1.5 text-[var(--color-text-secondary)] hover:bg-red-50 hover:text-red-600"
+                      className="rounded-lg p-1.5 text-[var(--color-text-secondary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error)]"
                       aria-label="Descartar ticket en espera"
                       title="Descartar ticket"
                     >
