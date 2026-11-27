@@ -3,8 +3,13 @@ run-name: CI | ${{ github.event.pull_request.head.ref || github.ref_name }} -> $
 'on':
   pull_request:
     branches:
-    - develop
-    - main
+      - develop
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
 permissions:
   contents: read
   actions: read
@@ -14,9 +19,6 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
-  evidence:
-    name: Evidencias de pruebas S14
-    uses: ./.github/workflows/workflow-evidence.yml
   quality:
     name: Security Analysis
     uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-pr-analysis.yml@main
@@ -27,3 +29,93 @@ jobs:
       sonar_host_url: ${{ vars.SONAR_HOST_URL }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  e2e:
+    name: E2E POS (Success and 409 Rejection)
+    needs: quality
+    if: ${{ needs.quality.result == 'success' && github.base_ref == 'main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci
+      - name: Build candidate for intercepted API
+        env:
+          VITE_USE_MOCKS: 'false'
+          VITE_API_URL: http://127.0.0.1:4173
+        run: npm run build
+      - name: Install isolated Playwright Chromium
+        run: |
+          npm install --prefix "$RUNNER_TEMP/playwright" --save-exact playwright@1.58.2
+          node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Run POS E2E scenarios
+        env:
+          PLAYWRIGHT_ROOT: ${{ runner.temp }}/playwright
+        run: |
+          set -euo pipefail
+          npm run preview -- --host 127.0.0.1 --port 4173 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          ready=false
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then ready=true; break; fi
+            sleep 1
+          done
+          test "$ready" = true
+          node e2e/venta.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-pos-${{ github.run_attempt }}
+          path: reports/e2e/
+          if-no-files-found: error
+          retention-days: 14
+  pr-gate:
+    name: pr-gate
+    needs: [quality, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          BASE_REF: ${{ github.base_ref }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const results = JSON.parse(process.env.RESULTS);
+            const isMain = process.env.BASE_REF === 'main';
+            const required = isMain ? ['quality', 'e2e'] : ['quality'];
+            const pass = required.every(id => results[id]?.result === 'success');
+            fs.writeFileSync('gate-result.json', JSON.stringify({
+              sha: context.sha,
+              base_ref: process.env.BASE_REF,
+              run_id: context.runId,
+              attempt: process.env.GITHUB_RUN_ATTEMPT,
+              required,
+              pass,
+              results
+            }, null, 2));
+            const badge = r => r === 'success' ? '✅ success' : r === 'skipped' ? '⏭️ skipped' : r === 'cancelled' ? '🚫 cancelled' : `❌ ${r || 'missing'}`;
+            await core.summary
+              .addHeading(pass ? `✅ GO · Validación PR (→ ${process.env.BASE_REF})` : `⛔ NO-GO · Validación PR (→ ${process.env.BASE_REF})`)
+              .addRaw(`Commit: \`${context.sha.slice(0, 7)}\` · Run: \`${context.runId}\` (attempt ${process.env.GITHUB_RUN_ATTEMPT || '1'})\n\n`)
+              .addTable([
+                ['Control', 'Política en rama', 'Estado'],
+                ...Object.entries(results).map(([k, v]) => [k, required.includes(k) ? 'Obligatorio' : 'Solo main', badge(v.result)])
+              ])
+              .write();
+            if (!pass) core.setFailed('Controles obligatorios incompletos o fallidos.');
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-gate-${{ github.run_attempt }}
+          path: gate-result.json
+          if-no-files-found: error
