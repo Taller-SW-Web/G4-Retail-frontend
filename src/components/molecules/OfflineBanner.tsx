@@ -65,7 +65,7 @@ export default function OfflineBanner() {
           <span>Hay {pendientesCount} ventas offline pendientes de sincronización.</span>
           <button
             onClick={() => void ctx.sincronizarCola()}
-            className="rounded bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
+            className="rounded-lg bg-[var(--color-accent-signal)] px-3 py-1 text-xs font-semibold text-[var(--color-text-inverse)] transition-colors hover:bg-[var(--color-surface-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-signal)] focus-visible:ring-offset-2"
           >
             Sincronizar ahora
           </button>

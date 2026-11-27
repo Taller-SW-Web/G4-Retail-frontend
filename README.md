@@ -1,6 +1,6 @@
 # G4 Retail — Frontend
 
-Prototipo de punto de venta para el módulo Retail del Marketplace Deportivo. Está construido con React, Vite, TypeScript y Tailwind CSS; por ahora usa un catálogo local y no requiere backend.
+Punto de venta del módulo Retail del Marketplace Deportivo, construido con React, Vite, TypeScript y Tailwind CSS. Consume la API de Retail (`VITE_API_URL`) y autentica al vendedor con Seguridad (G7). Con `VITE_USE_MOCKS=true` funciona sin backend, con datos de ejemplo.
 
 ## Cómo iniciar
 
@@ -11,7 +11,7 @@ npm test
 npm run build
 ```
 
-El acceso es una simulación: el formulario de inicio de sesión no valida credenciales ni representa autenticación real. El carrito se guarda en `localStorage` bajo la clave `inka-retail-cart`; para vaciar los datos guardados, elimina esa clave desde las herramientas del navegador.
+Con `VITE_USE_MOCKS=false`, el inicio de sesión lo valida Seguridad (G7); en el modo simulado se usan cuentas semilla. El carrito se guarda en `localStorage` bajo la clave `inka-retail-cart`; para vaciar los datos guardados, elimina esa clave desde las herramientas del navegador.
 
 ## Qué incluye el prototipo
 

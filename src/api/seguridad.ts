@@ -15,7 +15,8 @@ const AUTH_URL =
   (import.meta.env.DEV && typeof window !== 'undefined'
     ? window.location.origin
     : 'https://g7-auth-service.onrender.com')
-const USAR_AUTH_MOCK =
+/** Login simulado con usuarios semilla: solo en desarrollo, nunca con Seguridad (G7) real. */
+export const USAR_AUTH_MOCK =
   import.meta.env.VITE_USE_AUTH_MOCK === 'true' ||
   (import.meta.env.VITE_USE_AUTH_MOCK !== 'false' && USA_MOCKS)
 

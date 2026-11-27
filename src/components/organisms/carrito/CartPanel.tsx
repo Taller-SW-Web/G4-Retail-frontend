@@ -84,7 +84,7 @@ export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
             variant="outline"
             disabled={items.length === 0}
             onClick={() => setDialogo('limpiar')}
-            className="ml-auto gap-1.5 px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 hover:border-red-300"
+            className="ml-auto gap-1.5 px-2.5 py-1 text-xs text-[var(--color-error)] hover:bg-[var(--color-error-bg)] hover:border-[var(--color-error)]"
           >
             <IconTrash size={15} />
             Vaciar

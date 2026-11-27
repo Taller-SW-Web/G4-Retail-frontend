@@ -30,6 +30,11 @@ async function main() {
         if (url.pathname === '/api/v1/retail/perfil') return respond({usuarioId:'vendedor-prueba',codigoVendedor:'VEN-TEST',perfilTienda:'VENDEDOR',tiendaId:'tienda-prueba',activo:true});
         if (url.pathname === '/api/v1/retail/caja/turnos/actual') return respond({estado:'ABIERTA',turnoId:'turno-prueba',terminalPos:'POS-TEST'});
         if (url.pathname === '/api/v1/retail/catalogo') return respond({items:[{productoId:'PROD-TEST',nombre:'Polo prueba',categoria:'CAT-ROPA',precio:59.9,variantes:[{sku:'SKU-TEST',talla:'M',color:'Blanco',disponibilidad:'DISPONIBLE',stockTienda:10,enCuarentena:false}]}],page:0,size:20,total:1});
+        // F11 torre de control (contrato §5.11): el POS la consulta al cargar.
+        if (url.pathname === '/api/v1/retail/control/resumen') return respond({pickupPendientes:0,stockCritico:0,campanasVigentes:0,fuentesNoDisponibles:[],actualizadoEn:'2026-11-26T12:00:00Z'});
+        if (url.pathname === '/api/v1/retail/control/campanas-vigentes') return respond([]);
+        if (url.pathname === '/api/v1/retail/control/stock-critico') return respond([]);
+        if (url.pathname === '/api/v1/retail/control/pickup-pendientes') return respond([]);
         if (url.pathname === '/api/v1/retail/ventas' && request.method() === 'POST') {
           sales.push(request.postDataJSON());
           if (scenario === 'rechazo') return respond({status:409,code:'STOCK_INSUFICIENTE',detail:'Stock insuficiente de prueba'},409);
