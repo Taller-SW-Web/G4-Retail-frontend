@@ -1,0 +1,19 @@
+# gitleaks.toml — Política de secretos para G4-Retail-frontend
+# Ref: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+#
+# Criterio de exención documentado (SUPER_PROMPT regla 198):
+#   - Fixtures de mock local en src/api/mock/seguridad.ts: tokens JWT HS256
+#     con issuer mock (https://seguridad.g4/mock) usados únicamente cuando
+#     VITE_USE_MOCKS=true en desarrollo/E2E local, sin acceso a producción.
+
+title = "G4-Retail-frontend Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Tokens JWT mock y fixtures de prueba unitaria en src/api/"
+paths = [
+    '''src/api/mock/seguridad\.ts''',
+    '''src/api/seguridad\.test\.ts''',
+]
