@@ -121,6 +121,7 @@ export function aProducto(item: ProductoCatalogo): Product {
     ...(precioValido(variante.precio) ? { price: variante.precio } : {}),
     disponibilidad: variante.enCuarentena ? 'AGOTADO_TOTAL' : disponibilidadDe(variante),
     stockConocido: variante.stockTienda != null,
+    ...(variante.enCuarentena ? { enCuarentena: true } : {}),
   }))
 
   // El precio del artículo es el "desde": el menor de sus variantes si el backend no lo envía.
@@ -139,7 +140,14 @@ export function aProducto(item: ProductoCatalogo): Product {
   // Talla única: se vende directo con su SKU, sin abrir la matriz de tallas (RF-05).
   if (variants.length === 1 && variants[0].size === 'Única') {
     const [unica] = variants
-    return { ...base, id: unica.sku, price: unica.price ?? price, stock: unica.stock, disponibilidad: unica.disponibilidad }
+    return {
+      ...base,
+      id: unica.sku,
+      price: unica.price ?? price,
+      stock: unica.stock,
+      disponibilidad: unica.disponibilidad,
+      ...(unica.enCuarentena ? { enCuarentena: true } : {}),
+    }
   }
 
   return { ...base, id: item.productoId, stock: variants.reduce((suma, v) => suma + v.stock, 0), variants }

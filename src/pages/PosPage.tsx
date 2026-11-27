@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  IconAlertTriangle,
   IconArrowsExchange,
+  IconLock,
   IconBolt,
   IconCash,
   IconClipboardList,
@@ -41,6 +43,10 @@ import { resolverCodigoBarras } from '../api/catalogoApi'
 import Modal from '../components/molecules/Modal'
 import CustomerSection from '../components/organisms/clientes/CustomerSection'
 import PaymentModal from '../components/organisms/cobro/PaymentModal'
+import DiscrepancyModal from '../components/organisms/inventario/DiscrepancyModal'
+import QuarantineBlockedModal from '../components/organisms/inventario/QuarantineBlockedModal'
+import { useCuarentena } from '../hooks/useCuarentena'
+import { aplicarCuarentena, estaEnCuarentena, sonarError } from '../lib/cuarentena'
 import type { CartItem, Product } from '../types'
 
 /** Accesos del encabezado con iconos Tabler (el sistema de diseño no usa emojis como iconos). */
@@ -49,10 +55,13 @@ const ACCESOS = [
   { to: '/pedidos', etiqueta: 'Pedidos', Icono: IconFileSearch, titulo: 'Consulta de pedidos (atajo: tecla F6)' },
   { to: '/caja/cierre', etiqueta: 'Cierre de caja', Icono: IconCash, titulo: 'Cierre de caja y arqueo (F8)' },
   { to: '/cambios', etiqueta: 'Cambios', Icono: IconArrowsExchange, titulo: 'Cambio de prenda (F9)' },
+  { to: '/cuarentena', etiqueta: 'Cuarentena', Icono: IconLock, titulo: 'Artículos en cuarentena (F12)' },
 ] as const
 
 type PosPageProps = {
   products: Product[]
+  /** Catálogo completo de la tienda, sin el filtro del buscador (lector y reporte de incidencias). */
+  catalog?: Product[]
   cart: CartItem[]
   addToCart: (product: Product) => void
   increaseQuantity: (productId: string) => void
@@ -67,7 +76,8 @@ type PosPageProps = {
 }
 
 export default function PosPage({
-  products,
+  products: productosFiltrados,
+  catalog,
   cart,
   addToCart,
   increaseQuantity,
@@ -93,6 +103,19 @@ export default function PosPage({
   const cupon = useCartStore((store) => store.cupon)
   const totales = useMemo(() => calcularTotales(cart, cupon), [cart, cupon])
 
+  // F12 · RF-33: las prendas en cuarentena de la tienda se bloquean en el catálogo y en el lector.
+  const cuarentena = useCuarentena()
+  const products = useMemo(
+    () => aplicarCuarentena(productosFiltrados, cuarentena.skus),
+    [productosFiltrados, cuarentena.skus],
+  )
+  const catalogo = useMemo(
+    () => aplicarCuarentena(catalog ?? productosFiltrados, cuarentena.skus),
+    [catalog, productosFiltrados, cuarentena.skus],
+  )
+  const [bloqueada, setBloqueada] = useState<{ nombre: string; sku: string } | null>(null)
+  const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false)
+
   const [detail, setDetail] = useState<{ product: Product; sku?: string } | null>(null)
   const samples = useMemo(() => sampleBarcodes(products), [products])
   const campanas = useCampanasVigentes()
@@ -116,10 +139,15 @@ export default function PosPage({
   // Escanear o hacer clic en un botón de muestra agrega la prenda DIRECTAMENTE al carrito sin abrir modal
   const scan = async (code: string) => {
     // Primero el catálogo cargado; si no conoce la etiqueta, se pregunta a Retail (G6 no envía EAN).
-    const match = resolveScan(products, code) ?? (await resolverCodigoBarras(products, code))
-    if (match) {
-      addToCart(match.variant ? productoDeVariante(match.product, match.variant) : match.product)
+    const match = resolveScan(catalogo, code) ?? (await resolverCodigoBarras(catalogo, code))
+    if (!match) return
+    // RF-33 (CA-RF33-02): una prenda en cuarentena no entra al carrito; suena el error y se avisa.
+    if (estaEnCuarentena(match.product, match.variant)) {
+      sonarError()
+      setBloqueada({ nombre: match.product.name, sku: match.variant?.sku ?? match.product.id })
+      return
     }
+    addToCart(match.variant ? productoDeVariante(match.product, match.variant) : match.product)
   }
 
   const iniciarNuevoTicket = () => {
@@ -205,7 +233,11 @@ export default function PosPage({
                     Venta asistida
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" className="gap-2" onClick={() => setShowDiscrepancyModal(true)}>
+                    <IconAlertTriangle size={16} aria-hidden="true" />
+                    Reportar incidencia
+                  </Button>
                   <Button variant="secondary" onClick={() => navigate('/pickup')}>
                     Pickup
                   </Button>
@@ -326,6 +358,18 @@ export default function PosPage({
             setShowPaymentModal(false)
             useCartStore.getState().vaciarCarrito()
           }}
+        />
+      )}
+
+      {bloqueada && (
+        <QuarantineBlockedModal nombre={bloqueada.nombre} sku={bloqueada.sku} onClose={() => setBloqueada(null)} />
+      )}
+
+      {showDiscrepancyModal && (
+        <DiscrepancyModal
+          products={catalogo}
+          onClose={() => setShowDiscrepancyModal(false)}
+          onReportada={() => void cuarentena.recargar()}
         />
       )}
 

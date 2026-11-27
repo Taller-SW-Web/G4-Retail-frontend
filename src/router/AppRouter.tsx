@@ -7,6 +7,7 @@ import ReceiptPage from '../pages/ReceiptPage'
 import ExchangePage from '../pages/ExchangePage'
 import MermasPage from '../pages/MermasPage'
 import OrdersHistoryPage from '../pages/OrdersHistoryPage'
+import QuarantinePage from '../pages/QuarantinePage'
 import type { CartItem, Product } from '../types'
 import ProtectedRoute from './ProtectedRoute'
 
@@ -14,6 +15,8 @@ type AppRouterProps = {
   isAuthenticated: boolean
   onLogin: () => void
   products: Product[]
+  /** Catálogo completo, sin el filtro de búsqueda del POS (F12 identifica la prenda sobre él). */
+  catalog: Product[]
   cart: CartItem[]
   addToCart: (product: Product) => void
   increaseQuantity: (productId: string) => void
@@ -48,6 +51,7 @@ export default function AppRouter(props: AppRouterProps) {
           element={
             <PosPage
               products={props.products}
+              catalog={props.catalog}
               cart={props.cart}
               addToCart={props.addToCart}
               increaseQuantity={props.increaseQuantity}
@@ -67,6 +71,7 @@ export default function AppRouter(props: AppRouterProps) {
         <Route path="/pos/comprobante" element={<ReceiptPage />} />
         <Route path="/cambios" element={<ExchangePage />} />
         <Route path="/pedidos" element={<OrdersHistoryPage />} />
+        <Route path="/cuarentena" element={<QuarantinePage products={props.catalog} />} />
         {/* RF-34: el acta de merma la emite solo el supervisor (contrato §5.12). */}
         <Route element={<ProtectedRoute rolesPermitidos={['SUPERVISOR']} />}>
           <Route path="/inventario/actas" element={<MermasPage />} />
