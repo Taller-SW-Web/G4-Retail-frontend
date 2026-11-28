@@ -8,6 +8,7 @@ describe('formatCurrency', () => {
   })
 
   it('groups thousands', () => {
+    // El importe incluye un separador de miles y dos decimales.
     expect(formatCurrency(1250)).toBe('S/ 1,250.00')
   })
 })
