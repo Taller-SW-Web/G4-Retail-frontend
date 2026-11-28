@@ -185,7 +185,11 @@ export default function PosPage({
             <Badge tone={caja?.estado === 'ABIERTA' ? 'info' : 'warning'}>
               {caja?.estado === 'ABIERTA' ? 'Caja abierta' : 'Caja cerrada'}
             </Badge>
-            <Badge tone="brand">Turno 08:00 - 12:00</Badge>
+            {caja?.estado === 'ABIERTA' && caja.fechaHoraApertura && (
+              <Badge tone="brand">
+                Turno desde {new Date(caja.fechaHoraApertura).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+              </Badge>
+            )}
             <nav aria-label="Otras pantallas del mostrador" className="flex flex-wrap items-center gap-2 border-l border-[var(--color-border-inverse)] pl-3 text-xs font-semibold">
               {ACCESOS.map(({ to, etiqueta, Icono, titulo }) => (
                 <Link

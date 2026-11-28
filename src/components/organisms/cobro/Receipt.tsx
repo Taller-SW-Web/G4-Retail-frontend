@@ -226,7 +226,7 @@ export default function Receipt({ venta, vista }: ReceiptProps) {
           {esCambio ? 'Código de cambio' : esContingencia ? 'Ticket de contingencia' : 'Verificación del comprobante'}
         </p>
         {esContingencia ? (
-          <p className="text-center font-medium text-amber-800 text-[11px]">
+          <p className="text-center font-semibold text-[var(--color-text-primary)] text-[11px]">
             Comprobante emitido en contingencia offline. Pendiente de sincronización fiscal.
           </p>
         ) : (
