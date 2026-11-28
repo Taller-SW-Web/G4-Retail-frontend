@@ -9,6 +9,8 @@ export interface VentaRequest {
   clienteId?: string
   items: { sku: string; cantidad: number }[]
   cupon?: string
+  /** Evaluación de precios de `/carritos/calcular` que acompaña a la venta (§5.5). */
+  evaluacionId?: string
   pago: {
     medioPago: MedioPago
     montoRecibidoEfectivo?: number

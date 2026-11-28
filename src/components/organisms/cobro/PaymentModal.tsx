@@ -39,6 +39,8 @@ export interface PaymentModalProps {
   terminalPos: string
   turnoId: string
   cupon?: string
+  /** Evaluación de precios de `/carritos/calcular` (§5.5); el backend la usa para el precio vigente. */
+  evaluacionId?: string
   onClose: () => void
   /** Callback al confirmar venta exitosa — recibe los datos para el comprobante */
   onVentaConfirmada: (datos: VentaFinalizada) => void
@@ -56,6 +58,7 @@ export default function PaymentModal({
   terminalPos,
   turnoId,
   cupon,
+  evaluacionId,
   onClose,
   onVentaConfirmada,
 }: PaymentModalProps) {
@@ -193,7 +196,7 @@ export default function PaymentModal({
       pendiente.current ??= {
         clave: crypto.randomUUID(),
         peticion: {
-          terminalPos, turnoId, cupon,
+          terminalPos, turnoId, cupon, evaluacionId,
           clienteId: cliente.tipoDocumento === 'SIN_DOCUMENTO' ? undefined : cliente.id,
           items: items.map(({ sku, cantidad }) => ({ sku, cantidad })),
           pago: {

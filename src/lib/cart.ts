@@ -38,15 +38,21 @@ export function removeCartItem(items: CartItem[], productId: string): CartItem[]
   return items.filter((item) => item.product.id !== productId)
 }
 
+/** SKU con el que la línea del carrito viaja al backend: el de su variante o, si no tiene, el del producto. */
+export function skuDeLinea(item: CartItem): string {
+  return item.product.variants?.[0]?.sku || item.product.id
+}
+
 /**
- * Calcula el desglose tributario según normativa SUNAT (RF-12).
- * Base imponible: total / 1.18, IGV 18%: total - base.
+ * Desglose tributario SUNAT (RF-12) con el precio de lista y **sin descuentos**: base imponible =
+ * total / 1.18 e IGV = total - base.
+ *
+ * Es el estimado que se muestra sin conexión o mientras responde el backend. Los cupones y las
+ * promociones los calcula siempre Retail con Productos (RF-11, `POST /carritos/calcular`).
  */
-export function calcularTotales(items: CartItem[], cupon?: string): import('../types').TotalesCarrito {
+export function calcularTotales(items: CartItem[]): import('../types').TotalesCarrito {
   const subtotalBruto = getCartSubtotal(items)
-  const cuponLimpio = cupon?.trim().toUpperCase()
-  const aplica10 = cuponLimpio === 'VERANO2026' || cuponLimpio === 'DESCUENTO10'
-  const descuentoTotal = aplica10 ? Math.round(subtotalBruto * 10) / 100 : 0
+  const descuentoTotal = 0
   const totalPagar = Math.max(0, Math.round((subtotalBruto - descuentoTotal) * 100) / 100)
   const baseImponible = Math.round((totalPagar / 1.18) * 100) / 100
   const montoIgv = Math.round((totalPagar - baseImponible) * 100) / 100
