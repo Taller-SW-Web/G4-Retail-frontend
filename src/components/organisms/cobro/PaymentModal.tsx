@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconCash, IconCreditCard, IconX } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
+import Alert from '../../molecules/Alert'
 import { formatCurrency } from '../../../lib/format'
 import { ApiError } from '../../../api/http'
 import { registrarVentaConReintento, type MedioPago, type TipoComprobante, type VentaRequest } from '../../../api/ventas'
@@ -287,16 +288,14 @@ export default function PaymentModal({
 
         {/* aviso modo contingencia */}
         {!enLinea && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-            ⚠️ <strong>Modo Contingencia Activo:</strong> Sin conexión. Solo se admite cobro en efectivo. Se emitirá un ticket de contingencia y la venta se sincronizará automáticamente al volver la red.
-          </div>
+          <Alert tono="warning" title="Modo Contingencia Activo" className="px-4 py-3 text-xs">
+            Sin conexión. Solo se admite cobro en efectivo. Se emitirá un ticket de contingencia y la venta se sincronizará automáticamente al volver la red.
+          </Alert>
         )}
 
         {/* error de API */}
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
+          <Alert tono="error" className="px-4 py-3">{error}</Alert>
         )}
 
         <fieldset disabled={procesando || reintento} className="flex flex-col gap-5 border-0 p-0">
@@ -312,7 +311,7 @@ export default function PaymentModal({
                   className={[
                     'flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors',
                     !enLinea && t === 'FACTURA'
-                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-60'
+                      ? 'cursor-not-allowed border-[var(--color-border-default)] bg-[var(--color-surface-cloud-subtle)] text-[var(--color-text-secondary)] opacity-60'
                       : tipoComprobante === t
                         ? 'border-[var(--color-surface-ink)] bg-[var(--color-surface-ink)] text-[var(--color-text-inverse)]'
                         : 'border-[var(--color-border-default)] bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-surface-cloud-subtle)]',
@@ -326,9 +325,7 @@ export default function PaymentModal({
               Cliente: {cliente.nombre} · {cliente.tipoDocumento} {cliente.numeroDocumento}
             </p>
             {errorComprobante && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                {errorComprobante}
-              </div>
+              <Alert tono="warning" className="px-3 py-2 text-xs">{errorComprobante}</Alert>
             )}
             <label className="flex items-center gap-2 text-sm text-[var(--color-text-primary)] cursor-pointer">
               <input
@@ -368,7 +365,7 @@ export default function PaymentModal({
                 className={[
                   'flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors',
                   !enLinea
-                    ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-60'
+                    ? 'cursor-not-allowed border-[var(--color-border-default)] bg-[var(--color-surface-cloud-subtle)] text-[var(--color-text-secondary)] opacity-60'
                     : medio === 'TARJETA_POS'
                       ? 'border-[var(--color-surface-ink)] bg-[var(--color-surface-ink)] text-[var(--color-text-inverse)]'
                       : 'border-[var(--color-border-default)] bg-white text-[var(--color-text-primary)] hover:bg-[var(--color-surface-cloud-subtle)]',
@@ -396,7 +393,7 @@ export default function PaymentModal({
                     placeholder="0.00"
                   />
                   {recibido !== '' && vuelto < 0 && (
-                    <p className="text-xs text-red-600">
+                    <p className="text-xs text-[var(--color-error)]">
                       Monto insuficiente (Faltan {formatCurrency(-vuelto)})
                     </p>
                   )}
@@ -422,7 +419,7 @@ export default function PaymentModal({
                 </div>
 
                 {recibido !== '' && vuelto >= 0 && (
-                  <p role="status" className="text-lg font-semibold text-green-600">
+                  <p role="status" className="text-lg font-semibold text-[var(--color-success)]">
                     Vuelto a entregar: {formatCurrency(vuelto)}
                   </p>
                 )}
@@ -458,7 +455,7 @@ export default function PaymentModal({
           <button
             onClick={confirmar}
             disabled={procesando || (!reintento && (!pagoValido || !!errorComprobante))}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--color-accent-signal)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text-inverse)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-signal)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {procesando ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />

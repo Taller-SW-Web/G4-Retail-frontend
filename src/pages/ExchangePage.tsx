@@ -70,7 +70,7 @@ export default function ExchangePage() {
     }
   }
 
-  /** Tras emitir un vale, descuenta las unidades cambiadas sin volver a consultar. */
+  /** Tras registrar el cambio, descuenta las unidades cambiadas sin volver a consultar. */
   const alRegistrarCambio = (sku: string, cantidad: number) => {
     setValidacion((actual) =>
       actual && {
@@ -93,7 +93,7 @@ export default function ExchangePage() {
           </Button>
         </Link>
         <h1 className="font-heading text-2xl font-bold uppercase text-[var(--color-text-primary)]">
-          Cambios y vales de compra
+          Cambio de prenda
         </h1>
       </header>
 
