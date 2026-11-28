@@ -1,9 +1,16 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useCartStore } from '../../../store/cart'
 import type { Product } from '../../../types'
 import CartPanel from './CartPanel'
+import { calcularCarritoSimulado } from '../../../api/mock/carrito'
+
+// El cálculo lo hace el backend (§5.4); aquí se usa su doble para no depender de la red.
+vi.mock('../../../api/carritoApi', async (original) => ({
+  ...(await original<typeof import('../../../api/carritoApi')>()),
+  calcularCarrito: vi.fn((peticion, precios) => Promise.resolve(calcularCarritoSimulado(peticion, precios))),
+}))
 
 const producto: Product = {
   id: 'prod-001',
@@ -43,13 +50,13 @@ it('permite editar la cantidad y conserva el límite de stock (RF-10)', () => {
 })
 
 describe('Carrito en espera (RF-10 y RF-12)', () => {
-  it('libera el mostrador y recupera el importe con descuento al reanudar', () => {
+  it('libera el mostrador y recupera el importe con descuento al reanudar', async () => {
     useCartStore.getState().agregarProducto(producto)
     render(<CartPanel />)
 
     fireEvent.change(screen.getByLabelText('Cupón de descuento'), { target: { value: 'VERANO2026' } })
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
-    expect(screen.getByText('S/ 90.00')).toBeTruthy()
+    expect(await screen.findByText('S/ 90.00')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Pausar' }))
     fireEvent.change(screen.getByLabelText('Identificador o alias de la venta'), { target: { value: 'Probador 3' } })
@@ -61,8 +68,8 @@ describe('Carrito en espera (RF-10 y RF-12)', () => {
     expect(screen.getByText('Probador 3')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Reanudar' }))
 
-    expect(screen.getByText('S/ 90.00')).toBeTruthy()
-    expect(screen.getByText('VERANO2026 (-10%)')).toBeTruthy()
+    expect(await screen.findByText('S/ 90.00')).toBeTruthy()
+    expect(await screen.findByText('Cupón VERANO2026 aplicado (- S/ 10.00)')).toBeTruthy()
     expect(carritoGuardado).toContain('"cupon":"VERANO2026"')
   })
 

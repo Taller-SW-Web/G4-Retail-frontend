@@ -1,43 +1,37 @@
 import { useState } from 'react'
 import { IconDiscount2, IconX } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
+import Alert from '../../molecules/Alert'
 import { formatCurrency } from '../../../lib/format'
 import { useCartStore } from '../../../store/cart'
-import type { TotalesCarrito } from '../../../types'
+import type { ResultadoTotales } from '../../../hooks/useTotalesCarrito'
 
 interface TotalsPanelProps {
-  totales: TotalesCarrito
+  resultado: ResultadoTotales
 }
 
 /**
  * Resumen financiero y desglose tributario SUNAT del carrito (RF-11, RF-12).
- * Muestra Subtotal, Descuentos, Base Gravada, IGV (18%) y Total oficial.
+ *
+ * Los montos y los descuentos vienen de `POST /carritos/calcular` (§5.4): el cupón lo valida Retail
+ * con Productos (G6). Un cupón inválido no bloquea la venta: se avisa y no se descuenta.
  */
-export default function TotalsPanel({ totales }: TotalsPanelProps) {
+export default function TotalsPanel({ resultado }: TotalsPanelProps) {
+  const { totales, promociones, cuponInvalido, bloqueoCuarentena, estimado, calculando } = resultado
   const cupon = useCartStore((s) => s.cupon)
   const aplicarCupon = useCartStore((s) => s.aplicarCupon)
 
   const [inputCupon, setInputCupon] = useState('')
-  const [errorCupon, setErrorCupon] = useState(false)
 
   const handleAplicar = (e: React.FormEvent) => {
     e.preventDefault()
     const codigo = inputCupon.trim().toUpperCase()
     if (!codigo) return
-
-    if (codigo === 'VERANO2026' || codigo === 'DESCUENTO10') {
-      aplicarCupon(codigo)
-      setInputCupon('')
-      setErrorCupon(false)
-    } else {
-      setErrorCupon(true)
-    }
+    aplicarCupon(codigo)
+    setInputCupon('')
   }
 
-  const handleRemoverCupon = () => {
-    aplicarCupon('')
-    setErrorCupon(false)
-  }
+  const cuponAplicado = !!cupon && !cuponInvalido && !estimado && totales.descuentoTotal > 0
 
   return (
     <div className="space-y-2.5 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-surface-cloud-subtle)] p-3">
@@ -49,14 +43,22 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
         </label>
 
         {cupon ? (
-          <div className="flex items-center justify-between rounded-lg border border-[var(--color-success)] bg-[var(--color-success-bg)] px-3 py-1.5">
+          <div
+            className={`flex items-center justify-between rounded-lg border px-3 py-1.5 ${
+              cuponAplicado
+                ? 'border-[var(--color-success)] bg-[var(--color-success-bg)]'
+                : 'border-[var(--color-border-default)] bg-white'
+            }`}
+          >
             <span className="text-xs font-semibold text-[var(--color-text-primary)]">
-              {cupon} (-10%)
+              {cuponAplicado ? `Cupón ${cupon} aplicado` : cupon}
+              {cuponAplicado && ` (- ${formatCurrency(totales.descuentoTotal)})`}
+              {calculando && ' · validando…'}
             </span>
             <button
               type="button"
-              onClick={handleRemoverCupon}
-              className="rounded-lg text-[var(--color-success)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-signal)]"
+              onClick={() => aplicarCupon('')}
+              className="rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-signal)]"
               aria-label="Remover cupón"
             >
               <IconX size={16} />
@@ -68,11 +70,8 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
               id="input-cupon"
               type="text"
               value={inputCupon}
-              onChange={(e) => {
-                setInputCupon(e.target.value.toUpperCase())
-                setErrorCupon(false)
-              }}
-              placeholder="Ej. VERANO2026"
+              onChange={(e) => setInputCupon(e.target.value.toUpperCase())}
+              placeholder="Código del cupón"
               className="flex-1 rounded-lg border border-[var(--color-border-default)] bg-white px-3 py-1.5 text-xs uppercase text-[var(--color-text-primary)] focus:border-[var(--color-action-primary)] focus:outline-none"
             />
             <Button type="submit" variant="secondary" className="px-3 py-1.5 text-xs">
@@ -81,12 +80,21 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
           </form>
         )}
 
-        {errorCupon && (
+        {cupon && cuponInvalido && (
           <p className="mt-1 text-xs text-[var(--color-error)]">
-            Cupón no válido o vencido.
+            Cupón no válido o vencido: no se aplicó. La venta puede continuar.
+          </p>
+        )}
+        {cupon && estimado && !calculando && (
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+            Sin conexión con el servidor: el cupón se validará al cobrar.
           </p>
         )}
       </div>
+
+      {bloqueoCuarentena && (
+        <Alert tono="error" title="Prenda en cuarentena">{bloqueoCuarentena}</Alert>
+      )}
 
       {/* Desglose Tributario SUNAT */}
       <div className="space-y-2 text-sm">
@@ -105,6 +113,9 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
             </span>
           </div>
         )}
+        {promociones.map((promocion) => (
+          <p key={promocion} className="text-xs text-[var(--color-success)]">{promocion}</p>
+        ))}
 
         <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
           <span>Operación Gravada</span>
@@ -125,6 +136,11 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
               {formatCurrency(totales.totalPagar)}
             </span>
           </div>
+          {estimado && (
+            <p className="mt-1 text-right text-xs text-[var(--color-text-secondary)]">
+              {calculando ? 'Calculando con precios vigentes…' : 'Total estimado sin descuentos'}
+            </p>
+          )}
         </div>
       </div>
     </div>

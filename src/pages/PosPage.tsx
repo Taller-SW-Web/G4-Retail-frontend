@@ -35,7 +35,8 @@ import { turnoActual } from '../api/caja'
 import { useCajaStore } from '../store/caja'
 import { useAuthStore } from '../store/authStore'
 import { useCartStore } from '../store/cart'
-import { calcularTotales, getCartItemCount } from '../lib/cart'
+import { getCartItemCount, skuDeLinea } from '../lib/cart'
+import { useTotalesCarrito } from '../hooks/useTotalesCarrito'
 import { formatCurrency } from '../lib/format'
 import { resolveScan, sampleBarcodes } from '../lib/scanner'
 import { productoDeVariante } from '../lib/catalog'
@@ -101,7 +102,9 @@ export default function PosPage({
   const esSupervisor = perfil?.perfilTienda === 'SUPERVISOR'
   const cliente = useCartStore((store) => store.cliente)
   const cupon = useCartStore((store) => store.cupon)
-  const totales = useMemo(() => calcularTotales(cart, cupon), [cart, cupon])
+  // RF-11: totales, promociones y cupones los calcula Retail con Productos (G6), §5.4.
+  const calculo = useTotalesCarrito(cart, cupon)
+  const { totales } = calculo
 
   // F12 · RF-33: las prendas en cuarentena de la tienda se bloquean en el catálogo y en el lector.
   const cuarentena = useCuarentena()
@@ -309,6 +312,7 @@ export default function PosPage({
               onDecrease={decreaseQuantity}
               onRemove={removeFromCart}
               onProceedToPayment={() => setShowPaymentModal(true)}
+              calculo={calculo}
             />
           </div>
         </div>
@@ -342,7 +346,7 @@ export default function PosPage({
                 }
           }
           items={cart.map((item) => ({
-            sku: item.product.variants?.[0]?.sku || item.product.id,
+            sku: skuDeLinea(item),
             nombre: item.product.name,
             talla: item.product.variants?.[0]?.size || 'U',
             color: item.product.variants?.[0]?.color || 'Estándar',
@@ -353,6 +357,7 @@ export default function PosPage({
           turnoId={caja.turnoId}
           terminalPos={caja.terminalPos}
           cupon={cupon || undefined}
+          evaluacionId={calculo.evaluacionId}
           onClose={() => setShowPaymentModal(false)}
           onVentaConfirmada={() => {
             setShowPaymentModal(false)

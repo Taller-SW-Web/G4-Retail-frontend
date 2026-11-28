@@ -6,8 +6,11 @@ import EmptyState from '../../molecules/EmptyState'
 import CartLine from './CartLine'
 import TotalsPanel from './TotalsPanel'
 import { HeldCartsModal, HoldCartModal } from './HeldCarts'
-import { calcularTotales, getCartItemCount } from '../../../lib/cart'
+import { getCartItemCount } from '../../../lib/cart'
+import { useTotalesCarrito, type ResultadoTotales } from '../../../hooks/useTotalesCarrito'
 import { useCartStore } from '../../../store/cart'
+
+const SIN_ITEMS: import('../../../types').CartItem[] = []
 
 type DialogoActivo = 'pausar' | 'espera' | 'limpiar' | null
 
@@ -18,6 +21,8 @@ interface CartPanelProps {
   onDecrease?: (id: string) => void
   onRemove?: (id: string) => void
   onProceedToPayment?: () => void
+  /** Totales ya calculados por el padre (PosPage), para no pedir el cálculo dos veces. */
+  calculo?: ResultadoTotales
 }
 
 /**
@@ -29,7 +34,7 @@ interface CartPanelProps {
  * - Cálculo consolidado con fórmulas fiscales SUNAT e IGV 18%.
  * - Habilitación condicionada del botón de cobro (F5).
  */
-export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
+export default function CartPanel({ onProceedToPayment, calculo }: CartPanelProps) {
   const items = useCartStore((s) => s.items)
   const cupon = useCartStore((s) => s.cupon)
   const vaciarCarrito = useCartStore((s) => s.vaciarCarrito)
@@ -37,11 +42,18 @@ export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
 
   const [dialogo, setDialogo] = useState<DialogoActivo>(null)
 
-  const totales = calcularTotales(items, cupon)
+  // Sin cálculo del padre, lo pide el propio panel (con la lista vacía no se llama al backend).
+  const propio = useTotalesCarrito(calculo ? SIN_ITEMS : items, cupon)
+  const resultado = calculo ?? propio
+  const { totales } = resultado
   const totalPrendas = getCartItemCount(items)
 
-  const puedeCobrar = items.length > 0 && totales.totalPagar > 0
-  const motivoBloqueo = items.length === 0 ? 'Agregue productos del catálogo para habilitar el cobro' : null
+  const puedeCobrar = items.length > 0 && totales.totalPagar > 0 && !resultado.calculando && !resultado.bloqueoCuarentena
+  const motivoBloqueo = items.length === 0
+    ? 'Agregue productos del catálogo para habilitar el cobro'
+    : resultado.bloqueoCuarentena
+      ? 'Retire del carrito la prenda en cuarentena para continuar'
+      : null
 
   return (
     <aside className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border-default)] bg-white p-4 shadow-sm md:h-full md:min-h-0">
@@ -108,7 +120,7 @@ export default function CartPanel({ onProceedToPayment }: CartPanelProps) {
       </div>
 
       {/* Resumen Financiero SUNAT (RF-11, RF-12) */}
-      <TotalsPanel totales={totales} />
+      <TotalsPanel resultado={resultado} />
 
       {/* Botón Principal de Cobro */}
       <div className="space-y-1.5">
