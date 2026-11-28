@@ -35,6 +35,11 @@ async function main() {
         if (url.pathname === '/api/v1/retail/control/campanas-vigentes') return respond([]);
         if (url.pathname === '/api/v1/retail/control/stock-critico') return respond([]);
         if (url.pathname === '/api/v1/retail/control/pickup-pendientes') return respond([]);
+        // F12 cuarentena (§5.12) y F4 cálculo del carrito (§5.4, RF-11): el POS los consulta al cargar y al cambiar el carrito.
+        if (url.pathname === '/api/v1/retail/inventario/cuarentena') return respond([]);
+        if (url.pathname === '/api/v1/retail/carritos/calcular' && request.method() === 'POST') {
+          return respond({lineas:[{sku:'SKU-TEST',cantidad:1,precioUnitario:59.9,descuento:0,precioFinal:59.9,promocionAplicada:null}],subtotalBruto:59.9,descuentoTotal:0,totalPagar:59.9,baseImponible:50.76,montoIgv:9.14,moneda:'PEN',evaluacionId:'EVAL-TEST',advertencias:[]});
+        }
         if (url.pathname === '/api/v1/retail/ventas' && request.method() === 'POST') {
           sales.push(request.postDataJSON());
           if (scenario === 'rechazo') return respond({status:409,code:'STOCK_INSUFICIENTE',detail:'Stock insuficiente de prueba'},409);
@@ -64,6 +69,7 @@ async function main() {
         }
         assert.equal(sales.length,1,'Una venta por confirmación');
         assert.deepEqual(sales[0].items,[{sku:'SKU-TEST',cantidad:1}]);
+        assert.equal(sales[0].evaluacionId,'EVAL-TEST','La venta lleva la evaluación de /carritos/calcular (§5.5)');
         assert.deepEqual(unexpected,[],'No debe haber APIs no cubiertas');
         results.push({id:`CP-F5-${scenario}`,status:'PASS'});
       } catch (error) {
