@@ -42,7 +42,7 @@ export default function ReceiptPage() {
 
   function nuevaVenta() {
     sessionStorage.removeItem('f5_ultima_venta')
-    navigate('/pos')
+    void navigate('/pos')
   }
 
   return (
@@ -66,7 +66,7 @@ export default function ReceiptPage() {
       </header>
 
       {/* alerta de éxito — oculta al imprimir */}
-      <div className="print:hidden mx-auto mb-4 max-w-xl rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+      <div className="print:hidden mx-auto mb-4 max-w-xl rounded-xl border border-[var(--color-success)] bg-[var(--color-success-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)]">
         <span className="font-semibold">Pedido {venta.pedidoId} registrado.</span> Todo listo.
         Entrega el comprobante al cliente.
       </div>

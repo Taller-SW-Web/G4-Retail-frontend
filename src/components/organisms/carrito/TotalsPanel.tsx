@@ -49,14 +49,14 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
         </label>
 
         {cupon ? (
-          <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-1.5">
-            <span className="text-xs font-semibold text-green-800">
+          <div className="flex items-center justify-between rounded-lg border border-[var(--color-success)] bg-[var(--color-success-bg)] px-3 py-1.5">
+            <span className="text-xs font-semibold text-[var(--color-text-primary)]">
               {cupon} (-10%)
             </span>
             <button
               type="button"
               onClick={handleRemoverCupon}
-              className="text-green-700 hover:text-green-900"
+              className="rounded-lg text-[var(--color-success)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-signal)]"
               aria-label="Remover cupón"
             >
               <IconX size={16} />
@@ -82,7 +82,7 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
         )}
 
         {errorCupon && (
-          <p className="mt-1 text-xs text-red-600">
+          <p className="mt-1 text-xs text-[var(--color-error)]">
             Cupón no válido o vencido.
           </p>
         )}
@@ -98,7 +98,7 @@ export default function TotalsPanel({ totales }: TotalsPanelProps) {
         </div>
 
         {totales.descuentoTotal > 0 && (
-          <div className="flex justify-between text-green-700">
+          <div className="flex justify-between text-[var(--color-success)]">
             <span>Descuentos</span>
             <span className="font-semibold tabular-nums">
               - {formatCurrency(totales.descuentoTotal)}

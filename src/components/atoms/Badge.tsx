@@ -8,9 +8,9 @@ type BadgeProps = {
 export default function Badge({ tone = 'neutral', children }: BadgeProps) {
   const palettes = {
     neutral: 'bg-[var(--color-surface-cloud-subtle)] text-[var(--color-text-primary)]',
-    success: 'bg-[#EBFBEE] text-[#2F9E44]',
-    warning: 'bg-[#FFF9DB] text-[#F08C00]',
-    info: 'bg-[#E7F5FF] text-[#1971C2]',
+    success: 'bg-[var(--color-success-bg)] text-[var(--color-success)]',
+    warning: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]',
+    info: 'bg-[var(--color-info-bg)] text-[var(--color-info)]',
     error: 'bg-[var(--color-error-bg)] text-[var(--color-error)]',
     brand: 'bg-[var(--color-accent-volt)] text-[var(--color-text-primary)]',
   }

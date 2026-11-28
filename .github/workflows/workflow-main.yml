@@ -1,31 +1,42 @@
+# Wrapper de CD: develop solo verifica; main valida todo y despliega/publica solo con gate GO.
+# La orquestacion completa vive en devsecops-templates/workflow-deploy.yml.
 name: Production Deploy
-run-name: CD | ${{ inputs.rollback && 'Rollback' || 'Deployment' }}
+run-name: CD | ${{ inputs.rollback && 'Rollback' || (github.ref == 'refs/heads/main' && 'Production Release' || 'Develop Verification') }}
 'on':
   push:
-    branches:
-    - main
-    paths-ignore:
-    - '.github/**'
+    branches: [develop, main]
   workflow_dispatch:
     inputs:
       rollback:
         description: Restore the production tag selected in Use workflow from (retail-operator team required)
         type: boolean
         default: false
+      version_override:
+        description: Optional SemVer vX.Y.Z override for release (main only)
+        type: string
+        default: ''
 permissions:
   contents: write
   actions: read
+  security-events: write
+  pull-requests: write
+concurrency:
+  group: cd-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   delivery:
-    name: Despliegue a producción
+    name: Delivery
     uses: Taller-SW-Web/devsecops-templates/.github/workflows/workflow-deploy.yml@main
     with:
       component_name: g4-retail-frontend
       technology: node
+      language: typescript
       sonar_host_url: ${{ vars.SONAR_HOST_URL }}
       rollback: ${{ inputs.rollback || false }}
+      version_override: ${{ inputs.version_override || '' }}
       release_tag: ${{ inputs.rollback && github.ref_type == 'tag' && github.ref_name || '' }}
       healthcheck_url: ${{ vars.PRODUCTION_HEALTHCHECK_URL }}
+      e2e_script: e2e/venta.cjs
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       GH_TOKEN_G4: ${{ secrets.GH_TOKEN_G4 }}

@@ -1,12 +1,25 @@
+import { IconAlertTriangle, IconBuildingWarehouse, IconCircleCheck, IconCircleX } from '@tabler/icons-react'
 import Badge from '../atoms/Badge'
-import { getStockStatus } from '../../lib/inventory'
+import { getStockStatus, type StockInfo } from '../../lib/inventory'
 
-type StockBadgeProps = {
-  stock: number
-}
+type StockBadgeProps = StockInfo
 
-export default function StockBadge({ stock }: StockBadgeProps) {
-  const status = getStockStatus(stock)
+/** Semáforo de stock (RF-06): el estado va con texto e icono, nunca solo con color. */
+export default function StockBadge({ stock, disponibilidad, stockConocido }: StockBadgeProps) {
+  const status = getStockStatus({ stock, disponibilidad, stockConocido })
+  const Icono =
+    disponibilidad === 'SOLO_ALMACEN_CENTRAL' && !status.isAvailable
+      ? IconBuildingWarehouse
+      : !status.isAvailable
+        ? IconCircleX
+        : status.tone === 'warning'
+          ? IconAlertTriangle
+          : IconCircleCheck
 
-  return <Badge tone={status.tone}>{status.label}</Badge>
+  return (
+    <Badge tone={status.tone}>
+      <Icono size={14} aria-hidden="true" className="mr-1" />
+      {status.label}
+    </Badge>
+  )
 }

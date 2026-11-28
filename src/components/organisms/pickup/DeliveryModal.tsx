@@ -215,7 +215,7 @@ export default function DeliveryModal({ pedido, onEntregado, onClose }: Delivery
                 <span className="text-xs text-[var(--color-text-secondary)]">Ingrese 8 dígitos (faltan {faltanDigitos})</span>
               )}
               {dniNoCoincide && (
-                <span role="alert" className="text-xs font-semibold text-red-700">
+                <span role="alert" className="text-xs font-semibold text-[var(--color-error)]">
                   No coincide con el DNI del titular. Si recoge otra persona, elija «Tercero Autorizado»
                 </span>
               )}

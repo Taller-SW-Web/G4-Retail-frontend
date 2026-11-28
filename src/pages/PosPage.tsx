@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconBolt, IconClipboardList, IconPackage, IconReceipt2, IconSearch } from '@tabler/icons-react'
+import {
+  IconArrowsExchange,
+  IconBolt,
+  IconCash,
+  IconClipboardList,
+  IconFileSearch,
+  IconPackage,
+  IconPackageExport,
+  IconReceipt2,
+  IconSearch,
+} from '@tabler/icons-react'
 import { Link, useNavigate } from 'react-router-dom'
 import Badge from '../components/atoms/Badge'
 import Button from '../components/atoms/Button'
@@ -15,6 +25,9 @@ import ProductCard from '../components/organisms/catalogo/ProductCard'
 import ProductDetailModal from '../components/organisms/catalogo/ProductDetailModal'
 import ScannerSimulator from '../components/organisms/catalogo/ScannerSimulator'
 import ShiftOpenModal from '../components/organisms/caja/ShiftOpenModal'
+import ControlTowerMenu from '../components/organisms/control/ControlTowerMenu'
+import PromoBanner from '../components/molecules/PromoBanner'
+import { useCampanasVigentes } from '../hooks/useCampanasVigentes'
 import { turnoActual } from '../api/caja'
 import { useCajaStore } from '../store/caja'
 import { useAuthStore } from '../store/authStore'
@@ -23,10 +36,19 @@ import { calcularTotales, getCartItemCount } from '../lib/cart'
 import { formatCurrency } from '../lib/format'
 import { resolveScan, sampleBarcodes } from '../lib/scanner'
 import { productoDeVariante } from '../lib/catalog'
+import { resolverCodigoBarras } from '../api/catalogoApi'
 import Modal from '../components/molecules/Modal'
 import CustomerSection from '../components/organisms/clientes/CustomerSection'
 import PaymentModal from '../components/organisms/cobro/PaymentModal'
 import type { CartItem, Product } from '../types'
+
+/** Accesos del encabezado con iconos Tabler (el sistema de diseño no usa emojis como iconos). */
+const ACCESOS = [
+  { to: '/pickup', etiqueta: 'Pickup', Icono: IconPackageExport, titulo: 'Entregas en tienda (F7)' },
+  { to: '/pedidos', etiqueta: 'Pedidos', Icono: IconFileSearch, titulo: 'Consulta de pedidos (atajo: tecla F6)' },
+  { to: '/caja/cierre', etiqueta: 'Cierre de caja', Icono: IconCash, titulo: 'Cierre de caja y arqueo (F8)' },
+  { to: '/cambios', etiqueta: 'Cambios', Icono: IconArrowsExchange, titulo: 'Cambio de prenda (F9)' },
+] as const
 
 type PosPageProps = {
   products: Product[]
@@ -71,6 +93,7 @@ export default function PosPage({
 
   const [detail, setDetail] = useState<{ product: Product; sku?: string } | null>(null)
   const samples = useMemo(() => sampleBarcodes(products), [products])
+  const campanas = useCampanasVigentes()
 
   useEffect(() => {
     turnoActual().then(setCaja).catch(() => setCaja({ estado: 'CERRADA' }))
@@ -89,8 +112,9 @@ export default function PosPage({
   }, [navigate])
 
   // Escanear o hacer clic en un botón de muestra agrega la prenda DIRECTAMENTE al carrito sin abrir modal
-  const scan = (code: string) => {
-    const match = resolveScan(products, code)
+  const scan = async (code: string) => {
+    // Primero el catálogo cargado; si no conoce la etiqueta, se pregunta a Retail (G6 no envía EAN).
+    const match = resolveScan(products, code) ?? (await resolverCodigoBarras(products, code))
     if (match) {
       addToCart(match.variant ? productoDeVariante(match.product, match.variant) : match.product)
     }
@@ -132,25 +156,31 @@ export default function PosPage({
               {caja?.estado === 'ABIERTA' ? 'Caja abierta' : 'Caja cerrada'}
             </Badge>
             <Badge tone="brand">Turno 08:00 - 12:00</Badge>
-            <div className="flex items-center gap-2 border-l border-[var(--color-border-inverse)] pl-3 text-xs font-semibold">
-              <Link to="/pickup" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
-                📦 Pickup (F7)
-              </Link>
-              <Link to="/pedidos" title="Atajo: tecla F6" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
-                🧾 Pedidos (F6)
-              </Link>
-              <Link to="/caja/cierre" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
-                💵 Cierre Caja (F8)
-              </Link>
-              <Link to="/cambios" className="rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 hover:text-white transition-colors">
-                🔄 Cambios (F9)
-              </Link>
-            </div>
+            <nav aria-label="Otras pantallas del mostrador" className="flex flex-wrap items-center gap-2 border-l border-[var(--color-border-inverse)] pl-3 text-xs font-semibold">
+              {ACCESOS.map(({ to, etiqueta, Icono, titulo }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  title={titulo}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 transition-colors hover:text-[var(--color-text-inverse)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-signal)]"
+                >
+                  <Icono size={16} aria-hidden="true" />
+                  {etiqueta}
+                </Link>
+              ))}
+            </nav>
+            <ControlTowerMenu />
           </div>
         </div>
       </header>
 
       <OfflineBanner />
+
+      {campanas.length > 0 && (
+        <div className="mx-auto mt-4 max-w-7xl">
+          <PromoBanner campanas={campanas} />
+        </div>
+      )}
 
       <section className="mx-auto mt-6 max-w-7xl">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1.4fr)_420px] items-start">
