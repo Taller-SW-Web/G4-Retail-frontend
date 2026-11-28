@@ -6,7 +6,7 @@ import EmptyState from '../../molecules/EmptyState'
 import CartLine from './CartLine'
 import TotalsPanel from './TotalsPanel'
 import { HeldCartsModal, HoldCartModal } from './HeldCarts'
-import { getCartItemCount } from '../../../lib/cart'
+import { getCartItemCount, skuDeLinea } from '../../../lib/cart'
 import { useTotalesCarrito, type ResultadoTotales } from '../../../hooks/useTotalesCarrito'
 import { useCartStore } from '../../../store/cart'
 
@@ -114,7 +114,7 @@ export default function CartPanel({ onProceedToPayment, calculo }: CartPanelProp
           />
         ) : (
           items.map((item) => (
-            <CartLine key={item.product.id} item={item} />
+            <CartLine key={item.product.id} item={item} linea={resultado.lineas[skuDeLinea(item)]} />
           ))
         )}
       </div>

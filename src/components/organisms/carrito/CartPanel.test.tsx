@@ -56,7 +56,7 @@ describe('Carrito en espera (RF-10 y RF-12)', () => {
 
     fireEvent.change(screen.getByLabelText('Cupón de descuento'), { target: { value: 'VERANO2026' } })
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
-    expect(await screen.findByText('S/ 90.00')).toBeTruthy()
+    expect((await screen.findAllByText('S/ 90.00')).length).toBeGreaterThan(0)
 
     fireEvent.click(screen.getByRole('button', { name: 'Pausar' }))
     fireEvent.change(screen.getByLabelText('Identificador o alias de la venta'), { target: { value: 'Probador 3' } })
@@ -68,7 +68,7 @@ describe('Carrito en espera (RF-10 y RF-12)', () => {
     expect(screen.getByText('Probador 3')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Reanudar' }))
 
-    expect(await screen.findByText('S/ 90.00')).toBeTruthy()
+    expect((await screen.findAllByText('S/ 90.00')).length).toBeGreaterThan(0)
     expect(await screen.findByText('Cupón VERANO2026 aplicado (- S/ 10.00)')).toBeTruthy()
     expect(carritoGuardado).toContain('"cupon":"VERANO2026"')
   })
