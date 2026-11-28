@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
-import { IconPlus, IconX } from '@tabler/icons-react'
+import { IconLock, IconPlus, IconX } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
 import StockBadge from '../../molecules/StockBadge'
 import { getStockStatus } from '../../../lib/inventory'
@@ -145,20 +145,28 @@ export default function ProductDetailModal({
                 <legend className="mb-2 text-sm font-semibold text-[var(--color-text-primary)]">Talla</legend>
                 <div className="flex flex-wrap gap-2" onKeyDown={moveFocus}>
                   {sizesOfColor.map((variant) => {
-                    const agotada = variant.stock <= 0
-                    const motivo =
-                      variant.disponibilidad === 'SOLO_ALMACEN_CENTRAL' ? 'Solo en almacén central' : 'Agotada en esta tienda'
+                    const agotada = variant.stock <= 0 || Boolean(variant.enCuarentena)
+                    // F12 · RF-33: la talla en cuarentena se ve, pero bloqueada y con su motivo.
+                    const motivo = variant.enCuarentena
+                      ? 'No disponible (en revisión física)'
+                      : variant.disponibilidad === 'SOLO_ALMACEN_CENTRAL'
+                        ? 'Solo en almacén central'
+                        : 'Agotada en esta tienda'
                     return (
                       <button
                         key={variant.sku}
                         type="button"
                         disabled={agotada}
                         aria-pressed={variant.size === size}
+                        aria-label={variant.enCuarentena ? `${variant.size}, en cuarentena` : undefined}
                         title={agotada ? motivo : `SKU ${variant.sku}`}
                         onClick={() => setSize(variant.size)}
                         className={optionStyle(variant.size === size, agotada)}
                       >
                         {variant.size}
+                        {variant.enCuarentena ? (
+                          <IconLock size={12} aria-hidden="true" className="ml-1 inline align-[-1px]" />
+                        ) : null}
                       </button>
                     )
                   })}
@@ -171,7 +179,12 @@ export default function ProductDetailModal({
                 {conPrecio ? formatCurrency(precio) : 'Precio por confirmar'}
               </span>
               {selected ? (
-                <StockBadge stock={selected.stock} disponibilidad={selected.disponibilidad} stockConocido={selected.stockConocido} />
+                <StockBadge
+                  stock={selected.stock}
+                  disponibilidad={selected.disponibilidad}
+                  stockConocido={selected.stockConocido}
+                  enCuarentena={selected.enCuarentena}
+                />
               ) : variants.length === 0 ? (
                 <StockBadge stock={product.stock} disponibilidad={product.disponibilidad} stockConocido={product.stockConocido} />
               ) : null}

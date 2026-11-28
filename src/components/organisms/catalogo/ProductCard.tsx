@@ -63,7 +63,12 @@ export default function ProductCard({ product, onAdd, onOpen }: ProductCardProps
         </div>
 
         <div className="flex items-center justify-between">
-          <StockBadge stock={product.stock} disponibilidad={product.disponibilidad} stockConocido={product.stockConocido} />
+          <StockBadge
+            stock={product.stock}
+            disponibilidad={product.disponibilidad}
+            stockConocido={product.stockConocido}
+            enCuarentena={product.enCuarentena}
+          />
           <Button
             variant="primary"
             className="gap-2"

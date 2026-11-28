@@ -12,7 +12,12 @@ export type StockInfo = {
   disponibilidad?: Disponibilidad
   /** `false` si Productos (G6) no informó la cantidad (`stockTienda: null`, X-P0-03). */
   stockConocido?: boolean
+  /** F12 · RF-33: incidencia activa en la tienda. Manda sobre cualquier existencia. */
+  enCuarentena?: boolean
 }
+
+/** Etiqueta de la talla bloqueada por una incidencia (spec F12, RF-33). */
+export const ETIQUETA_CUARENTENA = 'En cuarentena'
 
 /**
  * Semáforo sin cantidades: cuando Productos no expone unidades, se informa el estado comercial y no
@@ -40,7 +45,9 @@ function estadoSinCantidad(disponibilidad: Disponibilidad | undefined, stock: nu
  * en `false` muestra solo el estado comercial.
  */
 export function getStockStatus(info: number | StockInfo): StockStatus {
-  const { stock, disponibilidad, stockConocido = true } = typeof info === 'number' ? { stock: info } : info
+  const { stock, disponibilidad, stockConocido = true, enCuarentena = false } =
+    typeof info === 'number' ? { stock: info } : info
+  if (enCuarentena) return { label: ETIQUETA_CUARENTENA, tone: 'error', isAvailable: false }
   if (!stockConocido) return estadoSinCantidad(disponibilidad, stock)
   if (disponibilidad === 'SOLO_ALMACEN_CENTRAL') return estadoSinCantidad(disponibilidad, stock)
   if (stock <= 0) return { label: 'Sin stock', tone: 'warning', isAvailable: false }

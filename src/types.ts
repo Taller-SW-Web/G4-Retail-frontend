@@ -18,6 +18,8 @@ export type Variant = {
   disponibilidad?: Disponibilidad
   /** `false` cuando `stockTienda` llegó `null`. Sin el campo se asume conocido (catálogo semilla). */
   stockConocido?: boolean
+  /** F12 · RF-33: la prenda tiene una incidencia activa en la tienda y no se puede vender. */
+  enCuarentena?: boolean
 }
 
 export type Product = {
@@ -31,6 +33,8 @@ export type Product = {
   /** Semáforo del artículo: el mejor estado entre sus variantes. */
   disponibilidad?: Disponibilidad
   stockConocido?: boolean
+  /** F12 · RF-33: artículo de talla única en cuarentena (con variantes, se marca cada variante). */
+  enCuarentena?: boolean
   /**
    * Variantes de talla y color (RF-05). Es opcional porque no todo artículo las tiene:
    * una mancuerna de 12 kg se vende sin tallas y su ficha no debe inventar una matriz.
