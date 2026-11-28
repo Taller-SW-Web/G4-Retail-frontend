@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { IconArrowLeft, IconBarcode, IconExchange } from '@tabler/icons-react'
 import Badge from '../components/atoms/Badge'
@@ -14,12 +14,18 @@ import {
   type ValidacionCambio,
 } from '../api/cambiosApi'
 import { formatCurrency, formatFechaHora } from '../lib/format'
+import { listarCatalogo } from '../api/catalogoApi'
+import { turnoActual } from '../api/caja'
+import { useCajaStore } from '../store/caja'
+import { useEstadoConexion } from '../hooks/useEstadoConexion'
+import type { Product } from '../types'
 
 /**
- * Cambios de prenda y vales de compra en mostrador (F9 · RF-23 a RF-25). Ruta `/cambios`.
+ * Cambio directo de prenda en mostrador (F9 · RF-23 a RF-25, contrato §5.9). Ruta `/cambios`.
  *
  * El vendedor escanea o escribe la boleta; la pantalla muestra si está en plazo y qué prendas se
- * pueden cambiar. Al elegir una, el modal guía la inspección física y emite el vale.
+ * pueden cambiar. Al elegir una, el modal guía la inspección, la elección de las prendas nuevas y el
+ * cobro de la diferencia. El cambio exige turno de caja abierto y no está disponible sin conexión.
  */
 export default function ExchangePage() {
   const [parametros] = useSearchParams()
@@ -29,6 +35,21 @@ export default function ExchangePage() {
   const [consultando, setConsultando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [itemEnCambio, setItemEnCambio] = useState<ItemCambiable | null>(null)
+  const [catalogo, setCatalogo] = useState<Product[]>([])
+  const caja = useCajaStore((store) => store.caja)
+  const setCaja = useCajaStore((store) => store.setCaja)
+  const enLinea = useEstadoConexion()
+  const turnoAbierto = caja?.estado === 'ABIERTA' && caja.turnoId && caja.terminalPos
+  const motivoBloqueo = !enLinea
+    ? 'Sin conexión con Retail: el cambio no está disponible en modo offline.'
+    : caja && !turnoAbierto
+      ? 'Abre el turno de caja antes de registrar un cambio.'
+      : null
+
+  useEffect(() => {
+    listarCatalogo().then(setCatalogo).catch(() => setCatalogo([]))
+    if (!caja) turnoActual().then(setCaja).catch(() => setCaja({ estado: 'CERRADA' }))
+  }, [caja, setCaja])
 
   const consultar = async (evento: FormEvent) => {
     evento.preventDefault()
@@ -99,6 +120,7 @@ export default function ExchangePage() {
           </Button>
         </form>
 
+        {motivoBloqueo && <Alert tono="warning">{motivoBloqueo}</Alert>}
         {error && <Alert tono="error">{error}</Alert>}
 
         {validacion && (
@@ -145,7 +167,7 @@ export default function ExchangePage() {
                     <Button
                       variant="outline"
                       className="gap-2"
-                      disabled={!validacion.plazoValido || agotado}
+                      disabled={!validacion.plazoValido || agotado || !turnoAbierto || !enLinea}
                       onClick={() => setItemEnCambio(item)}
                     >
                       <IconExchange size={18} /> {agotado ? 'Ya cambiada' : 'Cambiar'}
@@ -158,10 +180,12 @@ export default function ExchangePage() {
         )}
       </main>
 
-      {validacion && itemEnCambio && (
+      {validacion && itemEnCambio && turnoAbierto && (
         <ExchangeModal
           boletaNumero={validacion.boletaNumero}
           item={itemEnCambio}
+          catalogo={catalogo}
+          turno={{ turnoId: caja!.turnoId!, terminalPos: caja!.terminalPos! }}
           onCambioRegistrado={(_, cantidad) => alRegistrarCambio(itemEnCambio.sku, cantidad)}
           onClose={() => setItemEnCambio(null)}
         />
