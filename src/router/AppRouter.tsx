@@ -5,6 +5,7 @@ import PickupPage from '../pages/PickupPage'
 import CashClosePage from '../pages/CashClosePage'
 import ReceiptPage from '../pages/ReceiptPage'
 import ExchangePage from '../pages/ExchangePage'
+import MermasPage from '../pages/MermasPage'
 import OrdersHistoryPage from '../pages/OrdersHistoryPage'
 import QuarantinePage from '../pages/QuarantinePage'
 import type { CartItem, Product } from '../types'
@@ -71,6 +72,10 @@ export default function AppRouter(props: AppRouterProps) {
         <Route path="/cambios" element={<ExchangePage />} />
         <Route path="/pedidos" element={<OrdersHistoryPage />} />
         <Route path="/cuarentena" element={<QuarantinePage products={props.catalog} />} />
+        {/* RF-34: el acta de merma la emite solo el supervisor (contrato §5.12). */}
+        <Route element={<ProtectedRoute rolesPermitidos={['SUPERVISOR']} />}>
+          <Route path="/inventario/actas" element={<MermasPage />} />
+        </Route>
       </Route>
       <Route path="/" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />
       <Route path="*" element={<Navigate to={props.isAuthenticated ? "/pos" : "/login"} replace />} />

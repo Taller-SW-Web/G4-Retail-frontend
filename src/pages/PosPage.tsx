@@ -6,6 +6,7 @@ import {
   IconBolt,
   IconCash,
   IconClipboardList,
+  IconFileCertificate,
   IconFileSearch,
   IconPackage,
   IconPackageExport,
@@ -97,6 +98,7 @@ export default function PosPage({
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [showConfirmNuevoTicket, setShowConfirmNuevoTicket] = useState(false)
   const perfil = useAuthStore((store) => store.perfil)
+  const esSupervisor = perfil?.perfilTienda === 'SUPERVISOR'
   const cliente = useCartStore((store) => store.cliente)
   const cupon = useCartStore((store) => store.cupon)
   const totales = useMemo(() => calcularTotales(cart, cupon), [cart, cupon])
@@ -196,6 +198,16 @@ export default function PosPage({
                   {etiqueta}
                 </Link>
               ))}
+              {esSupervisor && (
+                <Link
+                  to="/inventario/actas"
+                  title="Liquidación de mermas (F12)"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 transition-colors hover:text-[var(--color-text-inverse)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-signal)]"
+                >
+                  <IconFileCertificate size={16} aria-hidden="true" />
+                  Actas de merma
+                </Link>
+              )}
             </nav>
             <ControlTowerMenu />
           </div>
