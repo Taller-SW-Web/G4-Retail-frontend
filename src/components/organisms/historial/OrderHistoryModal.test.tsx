@@ -11,6 +11,13 @@ vi.mock('../../../api/pedidoApi', async (importOriginal) => ({
   obtenerPedido: vi.fn(),
 }))
 
+// La talla y el color salen de la copia local del catálogo real que guarda el POS (F10).
+vi.mock('../../../lib/offlineStorage', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../lib/offlineStorage')>()),
+  obtenerCatalogoCache: vi.fn(async () => [{ id: 'TOPPRO', name: 'Top de compresión Pro', category: 'Ropa', price: 89, stock: 4,
+    image: 'https://img/top.jpg', variants: [{ sku: 'TOPPRO-M-NEG', barcode: '', size: 'M', color: 'Negro', stock: 4 }] }]),
+}))
+
 const base: DetallePedido = {
   pedidoId: 'PED-2026-00398',
   canal: 'MARKETPLACE',
@@ -58,11 +65,11 @@ describe('OrderHistoryModal (RF-17)', () => {
     expect(within(linea).getByText('01/11/2026 08:00')).toBeTruthy()
   })
 
-  it('desglosa las prendas con talla y color del catálogo y su subtotal', async () => {
+  it('desglosa las prendas con talla y color del catálogo guardado y su subtotal', async () => {
     abrir(base)
 
     const fila = (await screen.findByText('Top de compresión Pro')).closest('tr') as HTMLElement
-    expect(within(fila).getByText('M · Negro')).toBeTruthy()
+    expect(await within(fila).findByText('M · Negro')).toBeTruthy()
     expect(within(fila).getByText('S/ 178.00')).toBeTruthy()
   })
 

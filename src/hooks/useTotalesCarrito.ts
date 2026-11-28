@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError } from '../api/http'
-import { calcularCarrito, CUPON_INVALIDO, type CalculoCarrito } from '../api/carritoApi'
+import { calcularCarrito, CUPON_INVALIDO, type CalculoCarrito, type LineaCalculo } from '../api/carritoApi'
 import { SKU_EN_CUARENTENA } from '../api/inventarioApi'
 import { calcularTotales, skuDeLinea } from '../lib/cart'
 import type { CartItem, TotalesCarrito } from '../types'
@@ -8,10 +8,14 @@ import type { CartItem, TotalesCarrito } from '../types'
 /** Espera tras el último cambio del carrito antes de pedir el cálculo, para no llamar por cada clic. */
 export const ESPERA_CALCULO_MS = 300
 
+const SIN_LINEAS: Record<string, LineaCalculo> = {}
+
 export interface ResultadoTotales {
   totales: TotalesCarrito
   /** Referencia de la evaluación de precios que viaja en la venta (§5.5). */
   evaluacionId?: string
+  /** Líneas calculadas por el backend, por SKU: precio de lista, descuento y precio final (RF-11). */
+  lineas: Record<string, LineaCalculo>
   /** Promoción o cupón aplicado por línea, tal como lo informa Productos (G6). */
   promociones: string[]
   /** El cupón ingresado no existe, venció o no aplica: no se descuenta, pero no bloquea (§5.4). */
@@ -79,6 +83,7 @@ export function useTotalesCarrito(items: CartItem[], cupon: string): ResultadoTo
   if (!calculo || items.length === 0) {
     return {
       totales: local,
+      lineas: SIN_LINEAS,
       promociones: [],
       cuponInvalido: false,
       bloqueoCuarentena,
@@ -96,6 +101,7 @@ export function useTotalesCarrito(items: CartItem[], cupon: string): ResultadoTo
       montoIgv: calculo.montoIgv,
     },
     evaluacionId: calculo.evaluacionId ?? undefined,
+    lineas: Object.fromEntries(calculo.lineas.map((linea) => [linea.sku, linea])),
     promociones: [...new Set(calculo.lineas.map((l) => l.promocionAplicada).filter((p): p is string => !!p))],
     cuponInvalido: calculo.advertencias.includes(CUPON_INVALIDO),
     bloqueoCuarentena: null,

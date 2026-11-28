@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react'
 import { IconShirtSport } from '@tabler/icons-react'
 import type { DetallePedido } from '../../../api/pedidoApi'
 import { formatCurrency } from '../../../lib/format'
 import { etiquetaCanal, formatFechaHoraLima, prendaDelCatalogo } from '../../../lib/pedidos'
+import { obtenerCatalogoCache } from '../../../lib/offlineStorage'
+import type { Product } from '../../../types'
 import OrderStatusBadge from './OrderStatusBadge'
 
 const Dato = ({ titulo, valor }: { titulo: string; valor?: string }) => (
@@ -14,9 +17,18 @@ const Dato = ({ titulo, valor }: { titulo: string; valor?: string }) => (
 /**
  * Cabecera y prendas del pedido (RF-17): código, canal, estado, fecha, tienda, cliente y el desglose
  * de prendas con foto, talla, color y precio. Lo que Ventas aún no envía (foto, talla, color) se
- * completa con el catálogo de la tienda por SKU.
+ * completa con la copia local del catálogo real que guarda el POS (F10), por SKU.
  */
 export default function OrderTrackingCard({ pedido }: { pedido: DetallePedido }) {
+  const [catalogo, setCatalogo] = useState<Product[]>([])
+  useEffect(() => {
+    let vigente = true
+    obtenerCatalogoCache()
+      .then((guardado) => { if (vigente) setCatalogo(guardado ?? []) })
+      .catch(() => undefined)
+    return () => { vigente = false }
+  }, [])
+
   const documento = pedido.cliente?.numeroDocumento
     ? `${pedido.cliente.tipoDocumento ?? 'Doc.'} ${pedido.cliente.numeroDocumento}`
     : undefined
@@ -54,15 +66,15 @@ export default function OrderTrackingCard({ pedido }: { pedido: DetallePedido })
           </thead>
           <tbody>
             {pedido.lineas.map((linea) => {
-              const catalogo = prendaDelCatalogo(linea.sku)
-              const talla = linea.talla ?? catalogo.talla
-              const color = linea.color ?? catalogo.color
+              const prenda = prendaDelCatalogo(linea.sku, catalogo)
+              const talla = linea.talla ?? prenda.talla
+              const color = linea.color ?? prenda.color
               return (
                 <tr key={linea.sku} className="border-t border-[var(--color-border-default)]">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-3">
-                      {catalogo.imagen ? (
-                        <img src={catalogo.imagen} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                      {prenda.imagen ? (
+                        <img src={prenda.imagen} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                       ) : (
                         <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-cloud-subtle)] text-[var(--color-text-secondary)]">
                           <IconShirtSport size={20} />

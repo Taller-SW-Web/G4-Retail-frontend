@@ -3,16 +3,20 @@ import { useState } from 'react'
 import { formatCurrency } from '../../../lib/format'
 import { useCartStore } from '../../../store/cart'
 import type { CartItem } from '../../../types'
+import type { LineaCalculo } from '../../../api/carritoApi'
 
 interface CartLineProps {
   item: CartItem
+  /** Línea calculada por el backend (§5.4). Si trae descuento, se tacha el precio regular (RF-11). */
+  linea?: LineaCalculo
 }
 
 /**
- * Control de línea compacta del carrito POS (RF-10):
- * Detalle del producto, stepper con tope de existencias locales físicas y eliminación.
+ * Control de línea compacta del carrito POS (RF-10, RF-11):
+ * Detalle del producto, stepper con tope de existencias locales físicas y eliminación. Si una
+ * promoción o cupón beneficia la línea, tacha el precio regular y muestra el rebajado.
  */
-export default function CartLine({ item }: CartLineProps) {
+export default function CartLine({ item, linea }: CartLineProps) {
   const aumentarCantidad = useCartStore((s) => s.aumentarCantidad)
   const disminuirCantidad = useCartStore((s) => s.disminuirCantidad)
   const fijarCantidad = useCartStore((s) => s.fijarCantidad)
@@ -20,6 +24,8 @@ export default function CartLine({ item }: CartLineProps) {
   const [borrador, setBorrador] = useState<string | null>(null)
 
   const enMaximoStock = item.quantity >= item.product.stock
+  // Solo si la línea calculada corresponde a la cantidad actual (mientras recalcula, se muestra sin rebaja).
+  const conDescuento = !!linea && linea.descuento > 0 && linea.cantidad === item.quantity
   // RF-05: la línea corresponde a una variante concreta cuando el artículo tiene tallas o colores.
   const variante = item.product.variants?.length === 1 ? item.product.variants[0] : undefined
 
@@ -94,9 +100,23 @@ export default function CartLine({ item }: CartLineProps) {
           </button>
         </div>
 
-        <span className="font-bold tabular-nums text-[var(--color-text-primary)]">
-          {formatCurrency(item.product.price * item.quantity)}
-        </span>
+        {conDescuento && linea ? (
+          <span className="flex flex-col items-end leading-tight">
+            <s className="text-xs tabular-nums text-[var(--color-text-secondary)]" aria-label="Precio regular">
+              {formatCurrency(linea.precioUnitario * linea.cantidad)}
+            </s>
+            <span className="font-bold tabular-nums text-[var(--color-success)]" aria-label="Precio con descuento">
+              {formatCurrency(linea.precioFinal)}
+            </span>
+            {linea.promocionAplicada && (
+              <span className="text-[11px] text-[var(--color-success)]">{linea.promocionAplicada}</span>
+            )}
+          </span>
+        ) : (
+          <span className="font-bold tabular-nums text-[var(--color-text-primary)]">
+            {formatCurrency(item.product.price * item.quantity)}
+          </span>
+        )}
       </div>
     </div>
   )
