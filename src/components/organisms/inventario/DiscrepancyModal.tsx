@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { IconBarcode, IconSearch } from '@tabler/icons-react'
+import { IconBarcode, IconCheck, IconSearch } from '@tabler/icons-react'
 import Button from '../../atoms/Button'
 import Alert from '../../molecules/Alert'
 import Modal from '../../molecules/Modal'
@@ -219,12 +219,16 @@ export default function DiscrepancyModal({ products, onClose, onReportada }: Dis
               <label
                 key={valor}
                 className={[
-                  'flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--color-accent-signal)]',
+                  'flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-semibold text-[var(--color-text-primary)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--color-accent-signal)]',
+                  // Seleccionado: borde y fondo de acento con texto primario (contraste AA), más el check.
                   tipoFalla === valor
-                    ? 'border-[var(--color-surface-ink)] bg-[var(--color-surface-ink)] text-[var(--color-text-inverse)]'
+                    ? 'border-[var(--color-accent-signal)] bg-[var(--color-accent-signal-soft)]'
                     : 'border-[var(--color-border-default)] bg-white hover:bg-[var(--color-surface-cloud-subtle)]',
                 ].join(' ')}
               >
+                {tipoFalla === valor && (
+                  <IconCheck size={16} className="shrink-0 text-[var(--color-accent-signal)]" aria-hidden />
+                )}
                 <input
                   type="radio"
                   name="tipoFalla"

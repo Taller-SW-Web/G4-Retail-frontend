@@ -178,4 +178,16 @@ describe('DiscrepancyModal (F12 · RF-32)', () => {
 
     expect(screen.getByText('Abre el turno de caja antes de reportar una incidencia.')).toBeTruthy()
   })
+
+  it('design-system: el tipo de falla elegido se distingue con borde de acento y check, con texto legible', () => {
+    render(<DiscrepancyModal products={products} onClose={() => {}} />)
+    elegirFalla('Costura o tela dañada')
+
+    const elegido = screen.getByLabelText('Costura o tela dañada').closest('label')
+    expect(elegido?.className).toContain('border-[var(--color-accent-signal)]')
+    expect(elegido?.className).toContain('text-[var(--color-text-primary)]')
+    expect(elegido?.querySelector('svg')).not.toBeNull()
+    const otro = screen.getByLabelText('Prenda manchada en probador').closest('label')
+    expect(otro?.querySelector('svg')).toBeNull()
+  })
 })

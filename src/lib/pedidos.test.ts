@@ -12,6 +12,10 @@ import {
   prendaDelCatalogo,
   tonoEstado,
 } from './pedidos'
+import type { Product } from '../types'
+
+// Sin catálogo (por ejemplo, antes de abrir el POS) no se inventan datos.
+const SIN_CATALOGO: Product[] = []
 
 describe('pedidos (F6)', () => {
   it('acepta DNI de 8 dígitos o RUC de 11 y rechaza lo demás', () => {
@@ -89,10 +93,13 @@ describe('pedidos (F6)', () => {
     expect(pasos[2].motivo).toBe('Solicitado por el cliente')
   })
 
-  it('completa foto, talla y color de la prenda con el catálogo de la tienda', () => {
-    expect(prendaDelCatalogo('ZAPVEL-41-AZU')).toMatchObject({ talla: '41', color: 'Azul' })
-    expect(prendaDelCatalogo('ZAPVEL-41-AZU').imagen).toContain('https://')
-    expect(prendaDelCatalogo('SKU-DESCONOCIDO')).toEqual({})
+  it('completa foto, talla y color de la prenda con el catálogo que recibe, no con datos de ejemplo', () => {
+    const catalogo: Product[] = [{ id: 'ZAPVEL', name: 'Zapatilla', category: 'Running', price: 100, stock: 3, image: 'https://img/zap.jpg',
+      variants: [{ sku: 'ZAPVEL-41-AZU', barcode: '', size: '41', color: 'Azul', stock: 3 }] }]
+    expect(prendaDelCatalogo('ZAPVEL-41-AZU', catalogo)).toMatchObject({ talla: '41', color: 'Azul' })
+    expect(prendaDelCatalogo('ZAPVEL-41-AZU', catalogo).imagen).toContain('https://')
+    expect(prendaDelCatalogo('SKU-DESCONOCIDO', catalogo)).toEqual({})
+    expect(prendaDelCatalogo('ZAPVEL-41-AZU', SIN_CATALOGO)).toEqual({})
   })
 
   it('RF-16-DOC: etiqueta el documento como DNI o RUC según su longitud', () => {

@@ -3,7 +3,7 @@
  *
  * Funciones puras: se prueban sin renderizar React.
  */
-import { products } from '../data/products'
+import type { Product } from '../types'
 import type { EventoEstado } from '../api/pedidoApi'
 
 /** DNI de 8 dígitos o RUC de 11, igual que el contrato (§5.6). */
@@ -158,9 +158,12 @@ export interface PrendaCatalogo {
   color?: string
 }
 
-/** Foto, talla y color de la prenda según el catálogo de la tienda, por su SKU. */
-export function prendaDelCatalogo(sku: string): PrendaCatalogo {
-  for (const producto of products) {
+/**
+ * Foto, talla y color de la prenda según el catálogo real de la tienda (G6 vía Retail, §5.2), por su
+ * SKU. Recibe el catálogo de quien llama: no usa datos de ejemplo.
+ */
+export function prendaDelCatalogo(sku: string, catalogo: Product[]): PrendaCatalogo {
+  for (const producto of catalogo) {
     const variante = producto.variants?.find((v) => v.sku === sku)
     if (variante) return { imagen: producto.image, talla: variante.size, color: variante.color }
     if (producto.id === sku) return { imagen: producto.image }
