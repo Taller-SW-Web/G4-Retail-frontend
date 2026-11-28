@@ -179,9 +179,8 @@ export default function CashClosePage() {
       {registrandoMovimiento && (
         <CashMovementModal
           onCerrar={() => setRegistrandoMovimiento(false)}
-          onRegistrado={(nuevoSaldo) =>
-            setAviso(`Movimiento registrado. Efectivo estimado en gaveta: ${formatCurrency(nuevoSaldo)}.`)
-          }
+          // RF-22: el saldo esperado solo se revela después de enviar el arqueo.
+          onRegistrado={() => setAviso('Movimiento registrado.')}
         />
       )}
     </div>
