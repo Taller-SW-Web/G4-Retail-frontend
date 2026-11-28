@@ -11,6 +11,42 @@ afterEach(() => {
   sessionStorage.clear()
 })
 
+function montarCobro() {
+  render(<MemoryRouter><PaymentModal
+    total={100}
+    cliente={{ id: 'sin-doc', nombre: 'Cliente general', tipoDocumento: 'SIN_DOCUMENTO', numeroDocumento: '' }}
+    items={[{ sku: 'POLO-M', nombre: 'Polo', talla: 'M', color: 'Blanco', cantidad: 1, precioUnitario: 100 }]}
+    vendedor="VEN-001" terminalPos="POS-01" turnoId="turno-1"
+    onClose={vi.fn()} onVentaConfirmada={vi.fn()}
+  /></MemoryRouter>)
+}
+
+it('RF-13: efectivo menor al total bloquea el cobro y el monto exacto lo habilita', () => {
+  const post = vi.spyOn(api, 'post')
+  montarCobro()
+  const confirmar = screen.getByRole('button', { name: 'Confirmar Pago y Finalizar' })
+  fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '99.99' } })
+  expect(confirmar).toHaveProperty('disabled', true)
+  fireEvent.click(confirmar)
+  expect(post).not.toHaveBeenCalled()
+  fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '100' } })
+  expect(confirmar).toHaveProperty('disabled', false)
+})
+
+it('RF-13: tarjeta exige referencia y cambiar de medio limpia los datos anteriores', () => {
+  montarCobro()
+  fireEvent.click(screen.getByRole('button', { name: 'Tarjeta / POS' }))
+  const confirmar = screen.getByRole('button', { name: 'Confirmar Pago y Finalizar' })
+  expect(confirmar).toHaveProperty('disabled', true)
+  fireEvent.change(screen.getByPlaceholderText('OP-983120'), { target: { value: 'OP-1234' } })
+  expect(confirmar).toHaveProperty('disabled', false)
+  fireEvent.click(screen.getByRole('button', { name: 'Efectivo' }))
+  expect(screen.getByPlaceholderText('0.00')).toHaveProperty('value', '')
+  expect(confirmar).toHaveProperty('disabled', true)
+  fireEvent.click(screen.getByRole('button', { name: 'Tarjeta / POS' }))
+  expect(screen.getByPlaceholderText('OP-983120')).toHaveProperty('value', '')
+})
+
 it('reintenta el mismo cobro y guarda la boleta emitida por Retail', async () => {
   // Cada clic hace un intento y un reintento automático: los dos primeros 503 agotan el primer clic.
   const post = vi.spyOn(api, 'post')

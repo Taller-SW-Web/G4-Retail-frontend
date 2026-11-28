@@ -75,6 +75,12 @@ describe('PaymentModal en modo Contingencia Offline (RF-26, RF-27)', () => {
     // Aviso de contingencia
     expect(screen.getByText(/Modo Contingencia Activo/i)).toBeTruthy()
 
+    // design-system.md: el aviso usa el Alert de tono warning, sin emoji ni colores crudos de Tailwind
+    const aviso = screen.getByText(/Modo Contingencia Activo/i).closest('[role="status"]')
+    expect(aviso?.className).toContain('border-warning')
+    expect(document.body.textContent).not.toContain('⚠️')
+    expect(document.body.innerHTML).not.toMatch(/(amber|red|green|gray)-[0-9]{2,3}/)
+
     // Botón tarjeta deshabilitado
     const botonTarjeta = screen.getByRole('button', { name: /tarjeta/i })
     expect(botonTarjeta).toHaveProperty('disabled', true)

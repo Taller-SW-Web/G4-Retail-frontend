@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  IconAlertTriangle,
   IconArrowsExchange,
+  IconLock,
   IconBolt,
   IconCash,
   IconClipboardList,
+  IconFileCertificate,
   IconFileSearch,
   IconPackage,
   IconPackageExport,
@@ -32,7 +35,8 @@ import { turnoActual } from '../api/caja'
 import { useCajaStore } from '../store/caja'
 import { useAuthStore } from '../store/authStore'
 import { useCartStore } from '../store/cart'
-import { calcularTotales, getCartItemCount } from '../lib/cart'
+import { getCartItemCount, skuDeLinea } from '../lib/cart'
+import { useTotalesCarrito } from '../hooks/useTotalesCarrito'
 import { formatCurrency } from '../lib/format'
 import { resolveScan, sampleBarcodes } from '../lib/scanner'
 import { productoDeVariante } from '../lib/catalog'
@@ -40,6 +44,10 @@ import { resolverCodigoBarras } from '../api/catalogoApi'
 import Modal from '../components/molecules/Modal'
 import CustomerSection from '../components/organisms/clientes/CustomerSection'
 import PaymentModal from '../components/organisms/cobro/PaymentModal'
+import DiscrepancyModal from '../components/organisms/inventario/DiscrepancyModal'
+import QuarantineBlockedModal from '../components/organisms/inventario/QuarantineBlockedModal'
+import { useCuarentena } from '../hooks/useCuarentena'
+import { aplicarCuarentena, estaEnCuarentena, sonarError } from '../lib/cuarentena'
 import type { CartItem, Product } from '../types'
 
 /** Accesos del encabezado con iconos Tabler (el sistema de diseño no usa emojis como iconos). */
@@ -48,10 +56,13 @@ const ACCESOS = [
   { to: '/pedidos', etiqueta: 'Pedidos', Icono: IconFileSearch, titulo: 'Consulta de pedidos (atajo: tecla F6)' },
   { to: '/caja/cierre', etiqueta: 'Cierre de caja', Icono: IconCash, titulo: 'Cierre de caja y arqueo (F8)' },
   { to: '/cambios', etiqueta: 'Cambios', Icono: IconArrowsExchange, titulo: 'Cambio de prenda (F9)' },
+  { to: '/cuarentena', etiqueta: 'Cuarentena', Icono: IconLock, titulo: 'Artículos en cuarentena (F12)' },
 ] as const
 
 type PosPageProps = {
   products: Product[]
+  /** Catálogo completo de la tienda, sin el filtro del buscador (lector y reporte de incidencias). */
+  catalog?: Product[]
   cart: CartItem[]
   addToCart: (product: Product) => void
   increaseQuantity: (productId: string) => void
@@ -66,7 +77,8 @@ type PosPageProps = {
 }
 
 export default function PosPage({
-  products,
+  products: productosFiltrados,
+  catalog,
   cart,
   addToCart,
   increaseQuantity,
@@ -87,9 +99,25 @@ export default function PosPage({
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [showConfirmNuevoTicket, setShowConfirmNuevoTicket] = useState(false)
   const perfil = useAuthStore((store) => store.perfil)
+  const esSupervisor = perfil?.perfilTienda === 'SUPERVISOR'
   const cliente = useCartStore((store) => store.cliente)
   const cupon = useCartStore((store) => store.cupon)
-  const totales = useMemo(() => calcularTotales(cart, cupon), [cart, cupon])
+  // RF-11: totales, promociones y cupones los calcula Retail con Productos (G6), §5.4.
+  const calculo = useTotalesCarrito(cart, cupon)
+  const { totales } = calculo
+
+  // F12 · RF-33: las prendas en cuarentena de la tienda se bloquean en el catálogo y en el lector.
+  const cuarentena = useCuarentena()
+  const products = useMemo(
+    () => aplicarCuarentena(productosFiltrados, cuarentena.skus),
+    [productosFiltrados, cuarentena.skus],
+  )
+  const catalogo = useMemo(
+    () => aplicarCuarentena(catalog ?? productosFiltrados, cuarentena.skus),
+    [catalog, productosFiltrados, cuarentena.skus],
+  )
+  const [bloqueada, setBloqueada] = useState<{ nombre: string; sku: string } | null>(null)
+  const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false)
 
   const [detail, setDetail] = useState<{ product: Product; sku?: string } | null>(null)
   const samples = useMemo(() => sampleBarcodes(products), [products])
@@ -114,10 +142,15 @@ export default function PosPage({
   // Escanear o hacer clic en un botón de muestra agrega la prenda DIRECTAMENTE al carrito sin abrir modal
   const scan = async (code: string) => {
     // Primero el catálogo cargado; si no conoce la etiqueta, se pregunta a Retail (G6 no envía EAN).
-    const match = resolveScan(products, code) ?? (await resolverCodigoBarras(products, code))
-    if (match) {
-      addToCart(match.variant ? productoDeVariante(match.product, match.variant) : match.product)
+    const match = resolveScan(catalogo, code) ?? (await resolverCodigoBarras(catalogo, code))
+    if (!match) return
+    // RF-33 (CA-RF33-02): una prenda en cuarentena no entra al carrito; suena el error y se avisa.
+    if (estaEnCuarentena(match.product, match.variant)) {
+      sonarError()
+      setBloqueada({ nombre: match.product.name, sku: match.variant?.sku ?? match.product.id })
+      return
     }
+    addToCart(match.variant ? productoDeVariante(match.product, match.variant) : match.product)
   }
 
   const iniciarNuevoTicket = () => {
@@ -155,7 +188,11 @@ export default function PosPage({
             <Badge tone={caja?.estado === 'ABIERTA' ? 'info' : 'warning'}>
               {caja?.estado === 'ABIERTA' ? 'Caja abierta' : 'Caja cerrada'}
             </Badge>
-            <Badge tone="brand">Turno 08:00 - 12:00</Badge>
+            {caja?.estado === 'ABIERTA' && caja.fechaHoraApertura && (
+              <Badge tone="brand">
+                Turno desde {new Date(caja.fechaHoraApertura).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+              </Badge>
+            )}
             <nav aria-label="Otras pantallas del mostrador" className="flex flex-wrap items-center gap-2 border-l border-[var(--color-border-inverse)] pl-3 text-xs font-semibold">
               {ACCESOS.map(({ to, etiqueta, Icono, titulo }) => (
                 <Link
@@ -168,6 +205,16 @@ export default function PosPage({
                   {etiqueta}
                 </Link>
               ))}
+              {esSupervisor && (
+                <Link
+                  to="/inventario/actas"
+                  title="Liquidación de mermas (F12)"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-surface-ink-soft)] px-2.5 py-1 text-[var(--color-text-inverse)]/80 transition-colors hover:text-[var(--color-text-inverse)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-signal)]"
+                >
+                  <IconFileCertificate size={16} aria-hidden="true" />
+                  Actas de merma
+                </Link>
+              )}
             </nav>
             <ControlTowerMenu />
           </div>
@@ -193,7 +240,11 @@ export default function PosPage({
                     Venta asistida
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" className="gap-2" onClick={() => setShowDiscrepancyModal(true)}>
+                    <IconAlertTriangle size={16} aria-hidden="true" />
+                    Reportar incidencia
+                  </Button>
                   <Button variant="secondary" onClick={() => navigate('/pickup')}>
                     Pickup
                   </Button>
@@ -265,6 +316,7 @@ export default function PosPage({
               onDecrease={decreaseQuantity}
               onRemove={removeFromCart}
               onProceedToPayment={() => setShowPaymentModal(true)}
+              calculo={calculo}
             />
           </div>
         </div>
@@ -298,7 +350,7 @@ export default function PosPage({
                 }
           }
           items={cart.map((item) => ({
-            sku: item.product.variants?.[0]?.sku || item.product.id,
+            sku: skuDeLinea(item),
             nombre: item.product.name,
             talla: item.product.variants?.[0]?.size || 'U',
             color: item.product.variants?.[0]?.color || 'Estándar',
@@ -309,11 +361,24 @@ export default function PosPage({
           turnoId={caja.turnoId}
           terminalPos={caja.terminalPos}
           cupon={cupon || undefined}
+          evaluacionId={calculo.evaluacionId}
           onClose={() => setShowPaymentModal(false)}
           onVentaConfirmada={() => {
             setShowPaymentModal(false)
             useCartStore.getState().vaciarCarrito()
           }}
+        />
+      )}
+
+      {bloqueada && (
+        <QuarantineBlockedModal nombre={bloqueada.nombre} sku={bloqueada.sku} onClose={() => setBloqueada(null)} />
+      )}
+
+      {showDiscrepancyModal && (
+        <DiscrepancyModal
+          products={catalogo}
+          onClose={() => setShowDiscrepancyModal(false)}
+          onReportada={() => void cuarentena.recargar()}
         />
       )}
 

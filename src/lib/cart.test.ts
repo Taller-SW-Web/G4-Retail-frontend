@@ -43,15 +43,12 @@ describe('cart helpers', () => {
     expect(totales.baseImponible + totales.montoIgv).toBe(100)
   })
 
-  it('applies VERANO2026 coupon with 10% discount', () => {
+  it('el estimado local no aplica descuentos: los cupones los calcula el backend (RF-11)', () => {
     const items: CartItem[] = [{ product, quantity: 2 }] // price: 200
-    const totales = calcularTotales(items, 'VERANO2026')
+    const totales = calcularTotales(items)
 
     expect(totales.subtotalBruto).toBe(200)
-    expect(totales.descuentoTotal).toBe(20)
-    expect(totales.totalPagar).toBe(180)
-    expect(totales.baseImponible).toBe(152.54)
-    expect(totales.montoIgv).toBe(27.46)
-    expect(totales.baseImponible + totales.montoIgv).toBe(180)
+    expect(totales.descuentoTotal).toBe(0)
+    expect(totales.totalPagar).toBe(200)
   })
 })

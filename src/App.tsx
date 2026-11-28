@@ -50,6 +50,7 @@ export default function App() {
           isAuthenticated={isAuthenticated}
           onLogin={() => {}}
           products={filteredProducts}
+          catalog={products}
           cart={cart}
           addToCart={addToCart}
           increaseQuantity={increaseQuantity}
